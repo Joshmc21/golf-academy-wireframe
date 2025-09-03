@@ -193,6 +193,40 @@ function scatterSVG(points, options={}){
   return `<svg class="scatter" width="${w}" height="${h}">${axes}${dots}</svg>`;
 }
 
+/* ===== Compare table presets ===== */
+const COMPARE_PRESETS = [
+  {
+    name: "All Core",
+    columns: ["DOB","Age","HI","SG Total","SG Putting","SG Tee","SG Approach","SG Short","Ball Speed","CHS","Att (G/I)"],
+    sortKey: "sg_total", sortDir: -1
+  },
+  {
+    name: "Tournament Prep",
+    columns: ["HI","SG Total","SG Tee","SG Approach","SG Putting","Att (G/I)"],
+    sortKey: "sg_total", sortDir: -1
+  },
+  {
+    name: "Physical Block",
+    columns: ["Age","Ball Speed","CHS","CMJ","BJ","Height","Weight"],
+    sortKey: "ball", sortDir: -1
+  },
+  {
+    name: "Putting Focus",
+    columns: ["Age","SG Putting"],
+    sortKey: "sg_putt", sortDir: -1
+  },
+  {
+    name: "Approach/Wedge Focus",
+    columns: ["Age","SG Approach","SG Short"],
+    sortKey: "sg_app", sortDir: -1
+  },
+  {
+    name: "Attendance & Readiness",
+    columns: ["Age","Att (G/I)","SG Total"],
+    sortKey: "att_g", sortDir: -1
+  },
+];
+
 /* ================= Navigation + Guards ================= */
 function impersonate(role){
   state.role = role;
@@ -717,6 +751,21 @@ function renderTrends(main){
 function getLoggedGolfer(){ return state.golfers.find(x=>x.id===state.loggedGolferId) || state.golfers[0]; }
 function openProfile(id){ state.currentGolfer = state.golfers.find(x=>x.id===id); navTo("profile"); }
 
+function labelFromKey(key){
+  const map = {
+    name:"Name", dob:"DOB", age:"Age", hi:"HI",
+    sg_total:"SG Total", sg_putt:"SG Putting", sg_tee:"SG Tee",
+    sg_app:"SG Approach", sg_short:"SG Short",
+    ball:"Ball Speed", chs:"CHS", cmj:"CMJ", bj:"BJ",
+    height:"Height", weight:"Weight",
+    att_g:"Att (G/I)"
+  };
+  return map[key] || key;
+}
+
+/* ===== Coach → Compare (sortable any header, deltas, DOB/Age/Attendance) ===== */
+function renderCompare(main){
+
 /* ===== Coach: Compare & Profile (existing) ===== */
 function renderCompare(main){
   const colsAll = ["DOB","Age","HI","SG Total","SG Putting","SG Tee","SG Approach","SG Short","Ball Speed","CHS","CMJ","BJ","Height","Weight","Att (G/I)"];
@@ -789,21 +838,26 @@ function renderCompare(main){
     main.innerHTML = `
       <h1>Compare Golfers</h1>
       <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        <label>Date Window:
-          <select id="cmpWin">
-            ${["This Cycle","90 days","6 months","All"].map(w=>`<option ${w===state.compare.dateWindow?"selected":""}>${w}</option>`).join("")}
-          </select>
-        </label>
+  <label>Date Window:
+    <select id="cmpWin">
+      ${["This Cycle","90 days","6 months","All"].map(w=>`<option ${w===state.compare.dateWindow?"selected":""}>${w}</option>`).join("")}
+    </select>
+  </label>
 
-        <details>
-          <summary style="cursor:pointer">Columns</summary>
-          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
-            ${colsAll.map(c=>`<label><input type="checkbox" ${selected.has(c)?"checked":""} data-col="${c}"/> ${c}</label>`).join("")}
-          </div>
-        </details>
+  <details>
+    <summary style="cursor:pointer">Columns</summary>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
+      ${colsAll.map(c=>`<label><input type="checkbox" ${selected.has(c)?"checked":""} data-col="${c}"/> ${c}</label>`).join("")}
+    </div>
+  </details>
 
-        <button class="btn" onclick="__cmpCSV()">Export CSV</button>
-      </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    ${COMPARE_PRESETS.map(p=>`<button class="btn" data-preset="${p.name}">${p.name}</button>`).join("")}
+    <span class="muted" id="presetNote"></span>
+  </div>
+
+  <button class="btn" onclick="__cmpCSV()">Export CSV</button>
+</div>
 
       <div class="card" style="overflow:auto">
         <table class="table">
@@ -856,6 +910,30 @@ function renderCompare(main){
       };
     });
   }
+
+  main.querySelectorAll('input[type="checkbox"][data-col]').forEach(cb=>{
+  cb.onchange = (e)=>{
+    const col = e.target.getAttribute("data-col");
+    if(e.target.checked) selected.add(col); else selected.delete(col);
+    state.compare.columns = Array.from(selected);
+    render();
+  };
+});
+
+// Preset buttons
+function applyPreset(name){
+  const p = COMPARE_PRESETS.find(x=>x.name===name);
+  if(!p) return;
+  state.compare.columns = p.columns.slice();
+  state.compare.sortKey = p.sortKey;
+  state.compare.sortDir = p.sortDir;
+  const note = document.getElementById("presetNote");
+  if (note) note.textContent = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
+  render();
+}
+main.querySelectorAll('button[data-preset]').forEach(btn=>{
+  btn.onclick = ()=> applyPreset(btn.getAttribute('data-preset'));
+});
 
   render();
 }
