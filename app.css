@@ -1,0 +1,70 @@
+:root{
+  --bg:#F3F3F3; --panel:#ffffff; --card:#ffffff; --border:#d9d9d9;
+  --text:#000000; --muted:#555555; --accent:#FFBF00;
+}
+
+*{ box-sizing:border-box }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:15px/1.5 'Helvetica Neue Light','Helvetica Neue',Helvetica,Arial,sans-serif;
+}
+
+.app{ display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
+
+/* Sidebar */
+.sidebar{
+  border-right:1px solid var(--border);
+  background:var(--panel);
+  padding:16px;
+  position:sticky; top:0; height:100vh;
+}
+.logo img{ width:100%; max-width:160px; margin-bottom:16px; display:block }
+.muted{ color:var(--muted) }
+
+.nav button{
+  width:100%; text-align:left; padding:10px 12px;
+  background:transparent; border:1px solid transparent;
+  border-radius:10px; color:var(--text); cursor:pointer;
+}
+.nav button:hover{ background:var(--accent); color:#000 }
+
+/* Main area */
+.main{ padding:20px }
+.card{
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:14px; margin-bottom:12px;
+}
+.grid{ display:grid; gap:12px }
+.grid-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+.grid-3{ grid-template-columns:repeat(3,minmax(0,1fr)) }
+
+/* Tables */
+table{ width:100%; border-collapse:collapse }
+th, td{
+  padding:8px; border-bottom:1px solid var(--border);
+  text-align:left; vertical-align:top;
+}
+th[role=button]{ cursor:pointer; user-select:none }
+
+/* Sticky header for long tables */
+.table thead th{
+  position:sticky; top:0; background:#fff; z-index:1;
+}
+
+/* Buttons */
+.btn{
+  padding:6px 10px; border:1px solid var(--border);
+  border-radius:6px; background:#fff; cursor:pointer;
+}
+.btn:hover{ background:var(--accent) }
+
+/* Sparklines */
+.sparkwrap{ display:flex; align-items:center; gap:10px }
+.spark{ stroke:var(--accent); fill:none; stroke-width:2 }
+.spark2{ stroke:#000; fill:none; stroke-width:2; opacity:.6 }
+.kpi{ font-size:22px; font-weight:600 }
+
+/* Delta badges */
+.badge-up{ color:#0a7b00; font-weight:600 }
+.badge-down{ color:#b00020; font-weight:600 }
+.badge-flat{ opacity:.7 }
