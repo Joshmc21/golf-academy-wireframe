@@ -68,3 +68,11 @@ th[role=button]{ cursor:pointer; user-select:none }
 .badge-up{ color:#0a7b00; font-weight:600 }
 .badge-down{ color:#b00020; font-weight:600 }
 .badge-flat{ opacity:.7 }
+/* Subtle zebra rows for big tables */
+.table tbody tr:nth-child(odd){ background:#fafafa }
+
+/* Right-align numbers if you add class="num" later */
+td.num, th.num { text-align: right }
+
+/* SVG axis label styling */
+svg text { fill:#555; font-family: Helvetica, Arial, sans-serif }
