@@ -765,13 +765,11 @@ function labelFromKey(key){
 
 /* ===== Coach → Compare (sortable any header, deltas, DOB/Age/Attendance) ===== */
 function renderCompare(main){
-
-/* ===== Coach: Compare & Profile (existing) ===== */
-function renderCompare(main){
   const colsAll = ["DOB","Age","HI","SG Total","SG Putting","SG Tee","SG Approach","SG Short","Ball Speed","CHS","CMJ","BJ","Height","Weight","Att (G/I)"];
   const selected = new Set(state.compare.columns);
   const windowDates = qWindowDates(state.compare.dateWindow);
 
+  // Build rows from windowed data
   const rows = state.golfers.map(g=>{
     const sgW = g.sg.filter(s=>windowDates.includes(s.d));
     const phW = g.phys.filter(p=>windowDates.includes(p.d));
@@ -797,6 +795,7 @@ function renderCompare(main){
     };
   });
 
+  // Sorting
   let sortKey = state.compare.sortKey, sortDir = state.compare.sortDir;
   function sortRows(){
     rows.sort((a,b)=>{
@@ -814,12 +813,12 @@ function renderCompare(main){
   const cell = (label,val)=> selected.has(label) ? `<td>${fmt(val)}</td>` : "";
   const cellD = (label,val,dk,row)=> selected.has(label) ? `<td>${fmt(val)}${dBadge(row[dk])}</td>` : "";
 
+  // Expose sort + CSV helpers once
   window.__cmpSort = function(key){
     if(sortKey===key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
     state.compare.sortKey = sortKey; state.compare.sortDir = sortDir;
     sortRows(); render();
   };
-
   window.__cmpCSV = function(){
     const headRow = ["Rank","Name", ...colsAll.filter(c=>selected.has(c))];
     const body = rows.map((r,i)=>{
@@ -835,30 +834,32 @@ function renderCompare(main){
   };
 
   function render(){
-    main.innerHTML = `
-      <h1>Compare Golfers</h1>
+    // UI
+    const controls = `
       <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-  <label>Date Window:
-    <select id="cmpWin">
-      ${["This Cycle","90 days","6 months","All"].map(w=>`<option ${w===state.compare.dateWindow?"selected":""}>${w}</option>`).join("")}
-    </select>
-  </label>
+        <label>Date Window:
+          <select id="cmpWin">
+            ${["This Cycle","90 days","6 months","All"].map(w=>`<option ${w===state.compare.dateWindow?"selected":""}>${w}</option>`).join("")}
+          </select>
+        </label>
 
-  <details>
-    <summary style="cursor:pointer">Columns</summary>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
-      ${colsAll.map(c=>`<label><input type="checkbox" ${selected.has(c)?"checked":""} data-col="${c}"/> ${c}</label>`).join("")}
-    </div>
-  </details>
+        <details>
+          <summary style="cursor:pointer">Columns</summary>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
+            ${colsAll.map(c=>`<label><input type="checkbox" ${selected.has(c)?"checked":""} data-col="${c}"/> ${c}</label>`).join("")}
+          </div>
+        </details>
 
-  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-    ${COMPARE_PRESETS.map(p=>`<button class="btn" data-preset="${p.name}">${p.name}</button>`).join("")}
-    <span class="muted" id="presetNote"></span>
-  </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          ${COMPARE_PRESETS.map(p=>`<button class="btn" data-preset="${p.name}">${p.name}</button>`).join("")}
+          <span class="muted" id="presetNote"></span>
+        </div>
 
-  <button class="btn" onclick="__cmpCSV()">Export CSV</button>
-</div>
+        <button class="btn" onclick="__cmpCSV()">Export CSV</button>
+      </div>
+    `;
 
+    const table = `
       <div class="card" style="overflow:auto">
         <table class="table">
           <thead><tr>
@@ -897,6 +898,9 @@ function renderCompare(main){
       </div>
     `;
 
+    main.innerHTML = `<h1>Compare Golfers</h1>${controls}${table}`;
+
+    // Wire controls AFTER innerHTML
     document.getElementById("cmpWin").onchange = e=>{
       state.compare.dateWindow = e.target.value;
       renderCompare(main);
@@ -909,34 +913,28 @@ function renderCompare(main){
         render();
       };
     });
+
+    // Preset buttons
+    function applyPreset(name){
+      const p = COMPARE_PRESETS.find(x=>x.name===name);
+      if(!p) return;
+      state.compare.columns = p.columns.slice();
+      state.compare.sortKey = p.sortKey;
+      state.compare.sortDir = p.sortDir;
+      const note = document.getElementById("presetNote");
+      if (note) note.textContent = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
+      sortKey = p.sortKey; sortDir = p.sortDir;
+      sortRows();
+      render();
+    }
+    main.querySelectorAll('button[data-preset]').forEach(btn=>{
+      btn.onclick = ()=> applyPreset(btn.getAttribute('data-preset'));
+    });
   }
 
-  main.querySelectorAll('input[type="checkbox"][data-col]').forEach(cb=>{
-  cb.onchange = (e)=>{
-    const col = e.target.getAttribute("data-col");
-    if(e.target.checked) selected.add(col); else selected.delete(col);
-    state.compare.columns = Array.from(selected);
-    render();
-  };
-});
-
-// Preset buttons
-function applyPreset(name){
-  const p = COMPARE_PRESETS.find(x=>x.name===name);
-  if(!p) return;
-  state.compare.columns = p.columns.slice();
-  state.compare.sortKey = p.sortKey;
-  state.compare.sortDir = p.sortDir;
-  const note = document.getElementById("presetNote");
-  if (note) note.textContent = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
   render();
 }
-main.querySelectorAll('button[data-preset]').forEach(btn=>{
-  btn.onclick = ()=> applyPreset(btn.getAttribute('data-preset'));
-});
 
-  render();
-}
 function renderCoachProfile(main){
   const g = state.currentGolfer;
   if(!g){ main.innerHTML = "<p>No golfer selected.</p>"; return; }
