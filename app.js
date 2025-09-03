@@ -60,8 +60,8 @@ const state = {
     dateWindow: "This Cycle",
     columns: ["DOB","Age","SG Total","SG Putting","Ball Speed","CHS","Att (G/I)"],
     sortKey: "sg_total",
-    sortDir: -1
-    LastPreset: ""
+    sortDir: -1,
+    lastPreset: ""
   }
 };
 
@@ -814,7 +814,7 @@ function renderCompare(main){
   const cell = (label,val)=> selected.has(label) ? `<td>${fmt(val)}</td>` : "";
   const cellD = (label,val,dk,row)=> selected.has(label) ? `<td>${fmt(val)}${dBadge(row[dk])}</td>` : "";
 
-  // Expose sort + CSV helpers once
+  // Expose sort + CSV helpers once per renderCompare (globals)
   window.__cmpSort = function(key){
     if(sortKey===key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
     state.compare.sortKey = sortKey; state.compare.sortDir = sortDir;
@@ -835,7 +835,6 @@ function renderCompare(main){
   };
 
   function render(){
-    // UI
     const controls = `
       <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <label>Date Window:
@@ -915,19 +914,15 @@ function renderCompare(main){
       };
     });
 
-    // Preset buttons
-      function applyPreset(name){
-  const p = COMPARE_PRESETS.find(x=>x.name===name);
-  if(!p) return;
-  // Update state
-  state.compare.columns = p.columns.slice();
-  state.compare.sortKey = p.sortKey;
-  state.compare.sortDir = p.sortDir;
-  state.compare.lastPreset = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
-  // Re-render the whole Compare view so 'selected' is rebuilt from state
-  renderCompare(main);
-}
-
+    // Presets — update state and re-enter renderCompare so 'selected' refreshes
+    function applyPreset(name){
+      const p = COMPARE_PRESETS.find(x=>x.name===name);
+      if(!p) return;
+      state.compare.columns = p.columns.slice();
+      state.compare.sortKey = p.sortKey;
+      state.compare.sortDir = p.sortDir;
+      state.compare.lastPreset = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
+      renderCompare(main);
     }
     main.querySelectorAll('button[data-preset]').forEach(btn=>{
       btn.onclick = ()=> applyPreset(btn.getAttribute('data-preset'));
