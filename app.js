@@ -61,6 +61,7 @@ const state = {
     columns: ["DOB","Age","SG Total","SG Putting","Ball Speed","CHS","Att (G/I)"],
     sortKey: "sg_total",
     sortDir: -1
+    LastPreset: ""
   }
 };
 
@@ -852,7 +853,7 @@ function renderCompare(main){
 
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           ${COMPARE_PRESETS.map(p=>`<button class="btn" data-preset="${p.name}">${p.name}</button>`).join("")}
-          <span class="muted" id="presetNote"></span>
+          <span class="muted" id="presetNote">${state.compare.lastPreset || ""}</span>
         </div>
 
         <button class="btn" onclick="__cmpCSV()">Export CSV</button>
@@ -915,17 +916,18 @@ function renderCompare(main){
     });
 
     // Preset buttons
-    function applyPreset(name){
-      const p = COMPARE_PRESETS.find(x=>x.name===name);
-      if(!p) return;
-      state.compare.columns = p.columns.slice();
-      state.compare.sortKey = p.sortKey;
-      state.compare.sortDir = p.sortDir;
-      const note = document.getElementById("presetNote");
-      if (note) note.textContent = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
-      sortKey = p.sortKey; sortDir = p.sortDir;
-      sortRows();
-      render();
+      function applyPreset(name){
+  const p = COMPARE_PRESETS.find(x=>x.name===name);
+  if(!p) return;
+  // Update state
+  state.compare.columns = p.columns.slice();
+  state.compare.sortKey = p.sortKey;
+  state.compare.sortDir = p.sortDir;
+  state.compare.lastPreset = `Preset: ${p.name} • Sorted by ${labelFromKey(p.sortKey)}`;
+  // Re-render the whole Compare view so 'selected' is rebuilt from state
+  renderCompare(main);
+}
+
     }
     main.querySelectorAll('button[data-preset]').forEach(btn=>{
       btn.onclick = ()=> applyPreset(btn.getAttribute('data-preset'));
