@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Golf Academy – Wireframe</title>
+<style>
+  :root{
+    --bg:#F3F3F3;
+    --panel:#ffffff;
+    --card:#ffffff;
+    --border:#d9d9d9;
+    --text:#000000;
+    --muted:#555555;
+    --accent:#FFBF00;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.5 'Helvetica Neue Light','Helvetica Neue',Helvetica,Arial,sans-serif}
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+  .sidebar{border-right:1px solid var(--border);background:var(--panel);
+           padding:16px;position:sticky;top:0;height:100vh}
+  .logo img{width:100%;max-width:160px;margin-bottom:16px;display:block}
+  .nav button{width:100%;text-align:left;padding:10px 12px;
+              background:transparent;border:1px solid transparent;
+              border-radius:10px;color:var(--text);cursor:pointer}
+  .nav button:hover{background:var(--accent);color:#000}
+  .main{padding:20px}
+  .card{background:var(--card);border:1px solid var(--border);
+        border-radius:14px;padding:14px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;border-bottom:1px solid var(--border)}
+  .btn{padding:6px 10px;border:1px solid var(--border);
+       border-radius:6px;background:#fff;cursor:pointer}
+  .btn:hover{background:var(--accent)}
+  .spark{stroke:var(--accent);fill:none;stroke-width:2}
+</style>
+<script>
+const state = {
+  golfers: [
+    {id:1, name:"Millie Hixon", dob:"2010-02-14", age:15, hi:3.2,
+     sg:[{d:"2025-03", total:1.2, putt:0.4},
+         {d:"2025-06", total:1.5, putt:0.5}],
+     phys:[{d:"2025-03", chs:102, ball:148, cmj:30, bj:220},
+           {d:"2025-06", chs:104, ball:150, cmj:32, bj:225}],
+     ratings:[{d:"2025-03", holing:7, short:6, wedge:6, flight:7, plan:8},
+              {d:"2025-06", holing:8, short:7, wedge:7, flight:8, plan:8}]},
+    {id:2, name:"Jack Harrison", dob:"2010-02-09", age:15, hi:5.0,
+     sg:[{d:"2025-03", total:0.8, putt:0.3},
+         {d:"2025-06", total:1.1, putt:0.4}],
+     phys:[{d:"2025-03", chs:100, ball:145, cmj:28, bj:210},
+           {d:"2025-06", chs:101, ball:147, cmj:29, bj:215}],
+     ratings:[{d:"2025-03", holing:6, short:6, wedge:5, flight:6, plan:7},
+              {d:"2025-06", holing:7, short:7, wedge:6, flight:7, plan:7}]}
+  ],
+  currentGolfer:null
+};
+
+function nav(view) {
+  const main = document.getElementById("mainContent");
+  if(view==="compare"){
+    main.innerHTML = `<h1>Compare Golfers</h1>
+      <label>Date Window:
+        <select><option>This Cycle</option><option>90 days</option><option>6 months</option></select>
+      </label>
+      <table><thead><tr>
+        <th>Name</th><th>HI</th><th>SG Total</th><th>SG Putting</th>
+        <th>Ball Speed</th><th>CHS</th><th>View</th>
+      </tr></thead><tbody>
+      ${state.golfers.map(g=>`<tr>
+        <td>${g.name}</td><td>${g.hi}</td>
+        <td>${g.sg[g.sg.length-1].total}</td>
+        <td>${g.sg[g.sg.length-1].putt}</td>
+        <td>${g.phys[g.phys.length-1].ball}</td>
+        <td>${g.phys[g.phys.length-1].chs}</td>
+        <td><button class='btn' onclick='openProfile(${g.id})'>View Profile</button></td>
+      </tr>`).join('')}
+      </tbody></table>`;
+  }
+  else if(view==="profile"){
+    const g = state.currentGolfer;
+    if(!g){main.innerHTML="<p>No golfer selected.</p>";return;}
+    main.innerHTML = `<h1>${g.name} – Profile</h1>
+      <div class='card'><h2>Handicap: ${g.hi}</h2></div>
+      <div class='card'><h2>Physical Trends</h2>
+        <table><tr><th>Date</th><th>CHS</th><th>Ball</th><th>CMJ</th><th>BJ</th></tr>
+        ${g.phys.map(p=>`<tr><td>${p.d}</td><td>${p.chs}</td><td>${p.ball}</td><td>${p.cmj}</td><td>${p.bj}</td></tr>`).join('')}
+        </table>
+      </div>
+      <div class='card'><h2>Coach Rating Trends</h2>
+        <table><tr><th>Date</th><th>Holing</th><th>Short</th><th>Wedge</th><th>Flight</th><th>Plan</th></tr>
+        ${g.ratings.map(r=>`<tr><td>${r.d}</td><td>${r.holing}</td><td>${r.short}</td><td>${r.wedge}</td><td>${r.flight}</td><td>${r.plan}</td></tr>`).join('')}
+        </table>
+      </div>
+      <button class='btn' onclick='nav("compare")'>Back to Compare</button>`;
+  }
+  else {
+    main.innerHTML = `<h1>${view}</h1><p>Placeholder view.</p>`;
+  }
+}
+
+function impersonate(role){
+  document.getElementById("whoami").textContent="Role: "+role;
+  const roleNav=document.getElementById("roleNav"); roleNav.innerHTML="";
+  let pages=[];
+  if(role==="coach") pages=["Compare"];
+  else if(role==="golfer") pages=["Dashboard","Physical Trends","Coach Rating Trends"];
+  else if(role==="admin") pages=["Users","Compliance"];
+  pages.forEach(p=>{
+    const b=document.createElement("button");
+    b.textContent=p;
+    b.onclick=()=>nav(p.toLowerCase().replace(/ /g,"-"));
+    roleNav.appendChild(b);
+  });
+  if(pages.length) nav(pages[0].toLowerCase().replace(/ /g,"-"));
+}
+
+function openProfile(id){
+  state.currentGolfer=state.golfers.find(x=>x.id===id);
+  nav("profile");
+}
+</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA..." alt="ProPath Logo" />
+    </div>
+    <div id="whoami" class="muted">Not logged in</div>
+    <div class="section">
+      <h3>Role Panels</h3>
+      <div class="nav">
+        <button onclick="impersonate('golfer')">Impersonate Golfer</button>
+        <button onclick="impersonate('coach')">Impersonate Coach</button>
+        <button onclick="impersonate('admin')">Impersonate Admin</button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Navigate</h3>
+      <div id="roleNav" class="nav"></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div id="mainContent">
+      <h1>Welcome</h1>
+      <p>Select a role to begin exploring.</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>
