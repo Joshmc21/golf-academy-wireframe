@@ -36,7 +36,7 @@ function makeGolfer(i){
   }));
 
   const attendance = QUARTERS.map(q=>({
-    d:q, group:randi(0,3), one1:randi(0,3) // group sessions / 1:1 sessions
+    d:q, group:randi(0,3), one1:randi(0,3)
   }));
 
   return { id:i+1, name:`${f} ${l}`, dob, age, hi, sg, phys, ratings, attendance };
@@ -51,7 +51,7 @@ const state = {
     dateWindow: "This Cycle",
     columns: ["DOB","Age","SG Total","SG Putting","Ball Speed","CHS","Att (G/I)"],
     sortKey: "sg_total",
-    sortDir: -1 // -1 desc, 1 asc
+    sortDir: -1
   }
 };
 
@@ -89,40 +89,90 @@ function spark(values, w=180, h=48, cls="spark"){
   const sx = i => pad + (i/(values.length-1))*iw;
   const sy = v => pad + ih - ((v-min)/(max-min||1))*ih;
   const d = values.map((v,i)=>(i?`L ${sx(i)} ${sy(v)}`:`M ${sx(i)} ${sy(v)}`)).join(" ");
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path class="${cls}" d="${d}"/></svg>`;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path class="${cls}" d="${d}"/></svg>`;
+}
+
+/* ================= Correlation helpers ================= */
+const METRIC_OPTIONS = [
+  { key:"age",label:"Age",getter:(g)=>g.age },
+  { key:"dob_year",label:"DOB (year)",getter:(g)=>Number(g.dob.split("-")[0]) },
+  { key:"hi",label:"Handicap Index",getter:(g)=>g.hi },
+  { key:"sg_total",label:"SG Total",getter:(g,win)=>pickWindow(g.sg,win)?.total??null },
+  { key:"sg_putt",label:"SG Putting",getter:(g,win)=>pickWindow(g.sg,win)?.putting??null },
+  { key:"sg_tee",label:"SG Tee",getter:(g,win)=>pickWindow(g.sg,win)?.tee??null },
+  { key:"sg_app",label:"SG Approach",getter:(g,win)=>pickWindow(g.sg,win)?.approach??null },
+  { key:"sg_short",label:"SG Short",getter:(g,win)=>pickWindow(g.sg,win)?.short??null },
+  { key:"ball",label:"Ball Speed",getter:(g,win)=>pickWindow(g.phys,win)?.ball??null },
+  { key:"chs",label:"CHS",getter:(g,win)=>pickWindow(g.phys,win)?.chs??null },
+  { key:"cmj",label:"CMJ",getter:(g,win)=>pickWindow(g.phys,win)?.cmj??null },
+  { key:"bj",label:"BJ",getter:(g,win)=>pickWindow(g.phys,win)?.bj??null },
+  { key:"height",label:"Height",getter:(g,win)=>pickWindow(g.phys,win)?.height??null },
+  { key:"weight",label:"Weight",getter:(g,win)=>pickWindow(g.phys,win)?.weight??null },
+  { key:"att_g",label:"Attendance – Group",getter:(g,win)=>sumAtt(g,win).group },
+  { key:"att_1to1",label:"Attendance – 1:1",getter:(g,win)=>sumAtt(g,win).one1 }
+];
+function pickWindow(arr, win){
+  const w=qWindowDates(win); const inW=arr.filter(r=>w.includes(r.d));
+  return inW[inW.length-1]||last(arr);
+}
+function sumAtt(g, win){
+  const w=qWindowDates(win); const atW=g.attendance.filter(a=>w.includes(a.d));
+  return { group:atW.reduce((x,a)=>x+a.group,0), one1:atW.reduce((x,a)=>x+a.one1,0) };
+}
+function pearson(xs,ys){
+  const n=Math.min(xs.length,ys.length); if(n<2) return NaN;
+  let sx=0,sy=0,sxx=0,syy=0,sxy=0,k=0;
+  for(let i=0;i<n;i++){ const x=xs[i],y=ys[i];
+    if(x==null||y==null||Number.isNaN(x)||Number.isNaN(y)) continue;
+    k++; sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y;
+  }
+  if(k<2) return NaN;
+  const cov=sxy/k-(sx/k)*(sy/k);
+  const vx=sxx/k-(sx/k)*(sx/k);
+  const vy=syy/k-(sy/k)*(sy/k);
+  const denom=Math.sqrt(vx*vy);
+  return denom?cov/denom:NaN;
+}
+function scatterSVG(points,w=720,h=420,p=34){
+  if(!points.length) return "<div class='muted'>No points.</div>";
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
+  const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
+  const gx=v=>p+(xmax===xmin?0.5:(v-xmin)/(xmax-xmin))*(w-2*p);
+  const gy=v=>h-p-(ymax===ymin?0.5:(v-ymin)/(ymax-ymin))*(h-2*p);
+  const dots=points.map(pt=>`<circle cx="${gx(pt.x)}" cy="${gy(pt.y)}" r="3" fill="#000" opacity="0.7"><title>${pt.label}: (${pt.x}, ${pt.y})</title></circle>`).join("");
+  const axes=`<line x1="${p}" y1="${h-p}" x2="${w-p}" y2="${h-p}" stroke="#ccc"/><line x1="${p}" y1="${p}" x2="${p}" y2="${h-p}" stroke="#ccc"/>`;
+  return `<svg width="${w}" height="${h}">${axes}${dots}</svg>`;
 }
 
 /* ================= Navigation + Guards ================= */
 function impersonate(role){
   state.role = role;
-  document.getElementById("whoami").textContent = "Role: " + role;
-  const nav = document.getElementById("roleNav"); nav.innerHTML = "";
-
-  let pages = [];
-  if(role==="golfer") pages = ["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
-  if(role==="coach")  pages = ["Compare"];
-  if(role==="admin")  pages = ["Users","Compliance"]; // placeholders
-
+  document.getElementById("whoami").textContent="Role: "+role;
+  const nav=document.getElementById("roleNav"); nav.innerHTML="";
+  let pages=[];
+  if(role==="golfer") pages=["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
+  if(role==="coach")  pages=["Compare","Correlations"];
+  if(role==="admin")  pages=["Admin Dashboard","Correlations"];
   pages.forEach(p=>{
-    const b = document.createElement("button");
-    b.textContent = p;
-    b.onclick = () => navTo(p.toLowerCase().replace(/ /g,"-"));
+    const b=document.createElement("button");
+    b.textContent=p;
+    b.onclick=()=>navTo(p.toLowerCase().replace(/ /g,"-"));
     nav.appendChild(b);
   });
-
   if(pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
 }
 
 function navTo(view){
-  const main = document.getElementById("mainContent");
+  const main=document.getElementById("mainContent");
 
-  // coach-only guard
-  const coachOnly = new Set(["compare","profile"]);
-  if (coachOnly.has(view) && state.role !== "coach") {
-    main.innerHTML = "<h1>Not authorized</h1><p>This view is only available to coaches.</p>";
+  // restrict coach/admin-only pages
+  const coachOnly=new Set(["compare","profile","correlations","admin-dashboard"]);
+  if(coachOnly.has(view) && !(state.role==="coach" || state.role==="admin")){
+    main.innerHTML="<h1>Not authorized</h1><p>This view is only available to coaches or admins.</p>";
     return;
   }
 
+  /* ======= Golfer: Dashboard ======= */
   if (view==="dashboard"){
     const g = getLoggedGolfer();
     const sgTotals = g.sg.map(s=>s.total);
@@ -179,7 +229,7 @@ function navTo(view){
     return;
   }
 
-  /* ===== Golfer detail pages ===== */
+  /* ======= Golfer: Details ======= */
   if (view==="hi-detail"){
     const g = getLoggedGolfer();
     main.innerHTML = `
@@ -289,7 +339,31 @@ function navTo(view){
     return;
   }
 
-  /* ===== Coach pages ===== */
+  /* ======= Coach/Admin: Correlations ======= */
+  if (view === "correlations"){ renderCorrelations(main); return; }
+
+  /* ======= Admin Dashboard ======= */
+  if (view === "admin-dashboard"){
+    const gcount=state.golfers.length, coaches=4, users=gcount+coaches+1;
+    const nextCycle="2025-10-01", compliance=0.78;
+    main.innerHTML=`
+      <h1>Admin Dashboard</h1>
+      <div class="grid grid-3">
+        <div class="card"><div class="kpi">${users}</div><div class="muted">Total Users</div></div>
+        <div class="card"><div class="kpi">${gcount}</div><div class="muted">Golfers</div></div>
+        <div class="card"><div class="kpi">${coaches}</div><div class="muted">Coaches</div></div>
+        <div class="card"><div class="kpi">${(compliance*100|0)}%</div><div class="muted">Last Cycle Compliance</div></div>
+        <div class="card"><div class="kpi">${nextCycle}</div><div class="muted">Next Update Cycle</div></div>
+        <div class="card"><h3>Tools</h3><div class="grid grid-2">
+          <button class="btn" onclick="navTo('correlations')">Correlations</button>
+          <button class="btn" onclick="navTo('compare')">Compare</button>
+        </div></div>
+      </div>
+      <p class="muted">Note: Real admin controls come with Supabase.</p>
+    `; return;
+  }
+
+  /* ======= Coach: Compare / Profile ======= */
   if (view==="compare"){ renderCompare(main); return; }
 
   if (view==="profile"){
@@ -365,14 +439,12 @@ function renderCompare(main){
   const cell = (label,val)=> selected.has(label) ? `<td>${fmt(val)}</td>` : "";
   const cellD = (label,val,dk,row)=> selected.has(label) ? `<td>${fmt(val)}${dBadge(row[dk])}</td>` : "";
 
-  // header click sort
   window.__cmpSort = function(key){
     if(sortKey===key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
     state.compare.sortKey = sortKey; state.compare.sortDir = sortDir;
     sortRows(); render();
   };
 
-  // CSV export
   window.__cmpCSV = function(){
     const headRow = ["Rank","Name", ...colsAll.filter(c=>selected.has(c))];
     const body = rows.map((r,i)=>{
@@ -445,7 +517,6 @@ function renderCompare(main){
       </div>
     `;
 
-    // wire controls
     document.getElementById("cmpWin").onchange = e=>{
       state.compare.dateWindow = e.target.value;
       renderCompare(main);
@@ -462,3 +533,87 @@ function renderCompare(main){
 
   render();
 }
+
+/* === Correlations page renderer === */
+function renderCorrelations(main){
+  const golfers=state.golfers;
+  state.analyze=state.analyze||{x:"age",y:"sg_total",win:state.compare.dateWindow,perQuarter:false,selection:new Set(golfers.map(g=>g.id))};
+  const {x,y,win,perQuarter,selection}=state.analyze;
+
+  function getVal(g,key,w){const opt=METRIC_OPTIONS.find(m=>m.key===key);return opt?opt.getter(g,w):null;}
+
+  let points=[];
+  if(!perQuarter){
+    golfers.forEach(g=>{
+      if(!selection.has(g.id)) return;
+      const xv=getVal(g,x,win), yv=getVal(g,y,win);
+      if(xv!=null&&yv!=null) points.push({x:xv,y:yv,label:g.name});
+    });
+  } else {
+    const wdates=qWindowDates(win);
+    golfers.forEach(g=>{
+      if(!selection.has(g.id)) return;
+      wdates.forEach(d=>{
+        const from={sg:g.sg.find(r=>r.d===d),phys:g.phys.find(r=>r.d===d),att:g.attendance.find(r=>r.d===d)};
+        const table={age:g.age,dob_year:Number(g.dob.split("-")[0]),hi:g.hi,
+          sg_total:from.sg?.total,sg_putt:from.sg?.putting,sg_tee:from.sg?.tee,sg_app:from.sg?.approach,sg_short:from.sg?.short,
+          ball:from.phys?.ball,chs:from.phys?.chs,cmj:from.phys?.cmj,bj:from.phys?.bj,height:from.phys?.height,weight:from.phys?.weight,
+          att_g:from.att?.group??0,att_1to1:from.att?.one1??0};
+        const xv=table[x],yv=table[y];
+        if(xv!=null&&yv!=null) points.push({x:xv,y:yv,label:`${g.name} • ${d}`});
+      });
+    });
+  }
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
+  const r=pearson(xs,ys); const rTxt=Number.isNaN(r)?"n/a":r.toFixed(2);
+
+  const optsX=METRIC_OPTIONS.map(o=>`<option value="${o.key}" ${o.key===x?"selected":""}>${o.label}</option>`).join("");
+  const optsY=METRIC_OPTIONS.map(o=>`<option value="${o.key}" ${o.key===y?"selected":""}>${o.label}</option>`).join("");
+  const list=golfers.map(g=>`<label style="min-width:180px"><input type="checkbox" data-gid="${g.id}" ${selection.has(g.id)?"checked":""}/> ${g.name}</label>`).join("");
+
+  main.innerHTML=`
+    <h1>Correlations</h1>
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+      <label>X:<select id="xSel">${optsX}</select></label>
+      <label>Y:<select id="ySel">${optsY}</select></label>
+      <label>Date Window:<select id="winSel">${["This Cycle","90 days","6 months","All"].map(w=>`<option ${w===win?"selected":""}>${w}</option>`).join("")}</select></label>
+      <label><input type="checkbox" id="perQ" ${perQuarter?"checked":""}/> Per quarter points</label>
+      <button class="btn" id="selAll">All</button>
+      <button class="btn" id="selNone">None</button>
+      <div class="muted">Pearson r: <b>${rTxt}</b></div>
+    </div>
+
+    <div class="card">
+      ${scatterSVG(points, 720, 420, 34)}
+      <div class="muted" style="margin-top:6px">
+        Hint: try X=<i>DOB (year)</i> vs Y=<i>SG Total</i>, or X=<i>Age</i> vs Y=<i>Ball Speed</i>.
+      </div>
+    </div>
+
+    <div class="card">
+      <details open>
+        <summary style="cursor:pointer"><b>Select golfers</b></summary>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">${list}</div>
+      </details>
+    </div>
+  `;
+
+  // Wire controls
+  document.getElementById("xSel").onchange = e => { state.analyze.x = e.target.value; renderCorrelations(main); };
+  document.getElementById("ySel").onchange = e => { state.analyze.y = e.target.value; renderCorrelations(main); };
+  document.getElementById("winSel").onchange = e => { state.analyze.win = e.target.value; renderCorrelations(main); };
+  document.getElementById("perQ").onchange  = e => { state.analyze.perQuarter = e.target.checked; renderCorrelations(main); };
+  document.getElementById("selAll").onclick = () => { state.analyze.selection = new Set(golfers.map(g=>g.id)); renderCorrelations(main); };
+  document.getElementById("selNone").onclick= () => { state.analyze.selection = new Set(); renderCorrelations(main); };
+  main.querySelectorAll('input[type="checkbox"][data-gid]').forEach(cb=>{
+    cb.onchange = e => {
+      const id = Number(e.target.getAttribute("data-gid"));
+      if (e.target.checked) selection.add(id); else selection.delete(id);
+      renderCorrelations(main);
+    };
+  });
+}
+
+/* ===== Utilities used by coach views ===== */
+function getLoggedGolfer(){ return state.golfers.find(x=>x.id===state.loggedGolferId) || state.golfers[0]; }
+function openProfile(id){ state.currentGolfer = state.golfers.find(x=>x.id===id); navTo("profile"); }
