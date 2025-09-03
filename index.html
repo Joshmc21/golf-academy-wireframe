@@ -33,93 +33,15 @@
   .btn{padding:6px 10px;border:1px solid var(--border);
        border-radius:6px;background:#fff;cursor:pointer}
   .btn:hover{background:var(--accent)}
+  .grid{display:grid;gap:12px}
+  .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .muted{color:var(--muted)}
+  .sparkwrap{display:flex;align-items:center;gap:10px}
   .spark{stroke:var(--accent);fill:none;stroke-width:2}
+  .spark2{stroke:#000;fill:none;stroke-width:2;opacity:.6}
+  .kpi{font-size:22px;font-weight:600}
 </style>
-<script>
-const state = {
-  golfers: [
-    {id:1, name:"Millie Hixon", dob:"2010-02-14", age:15, hi:3.2,
-     sg:[{d:"2025-03", total:1.2, putt:0.4},
-         {d:"2025-06", total:1.5, putt:0.5}],
-     phys:[{d:"2025-03", chs:102, ball:148, cmj:30, bj:220},
-           {d:"2025-06", chs:104, ball:150, cmj:32, bj:225}],
-     ratings:[{d:"2025-03", holing:7, short:6, wedge:6, flight:7, plan:8},
-              {d:"2025-06", holing:8, short:7, wedge:7, flight:8, plan:8}]},
-    {id:2, name:"Jack Harrison", dob:"2010-02-09", age:15, hi:5.0,
-     sg:[{d:"2025-03", total:0.8, putt:0.3},
-         {d:"2025-06", total:1.1, putt:0.4}],
-     phys:[{d:"2025-03", chs:100, ball:145, cmj:28, bj:210},
-           {d:"2025-06", chs:101, ball:147, cmj:29, bj:215}],
-     ratings:[{d:"2025-03", holing:6, short:6, wedge:5, flight:6, plan:7},
-              {d:"2025-06", holing:7, short:7, wedge:6, flight:7, plan:7}]}
-  ],
-  currentGolfer:null
-};
-
-function nav(view) {
-  const main = document.getElementById("mainContent");
-  if(view==="compare"){
-    main.innerHTML = `<h1>Compare Golfers</h1>
-      <label>Date Window:
-        <select><option>This Cycle</option><option>90 days</option><option>6 months</option></select>
-      </label>
-      <table><thead><tr>
-        <th>Name</th><th>HI</th><th>SG Total</th><th>SG Putting</th>
-        <th>Ball Speed</th><th>CHS</th><th>View</th>
-      </tr></thead><tbody>
-      ${state.golfers.map(g=>`<tr>
-        <td>${g.name}</td><td>${g.hi}</td>
-        <td>${g.sg[g.sg.length-1].total}</td>
-        <td>${g.sg[g.sg.length-1].putt}</td>
-        <td>${g.phys[g.phys.length-1].ball}</td>
-        <td>${g.phys[g.phys.length-1].chs}</td>
-        <td><button class='btn' onclick='openProfile(${g.id})'>View Profile</button></td>
-      </tr>`).join('')}
-      </tbody></table>`;
-  }
-  else if(view==="profile"){
-    const g = state.currentGolfer;
-    if(!g){main.innerHTML="<p>No golfer selected.</p>";return;}
-    main.innerHTML = `<h1>${g.name} – Profile</h1>
-      <div class='card'><h2>Handicap: ${g.hi}</h2></div>
-      <div class='card'><h2>Physical Trends</h2>
-        <table><tr><th>Date</th><th>CHS</th><th>Ball</th><th>CMJ</th><th>BJ</th></tr>
-        ${g.phys.map(p=>`<tr><td>${p.d}</td><td>${p.chs}</td><td>${p.ball}</td><td>${p.cmj}</td><td>${p.bj}</td></tr>`).join('')}
-        </table>
-      </div>
-      <div class='card'><h2>Coach Rating Trends</h2>
-        <table><tr><th>Date</th><th>Holing</th><th>Short</th><th>Wedge</th><th>Flight</th><th>Plan</th></tr>
-        ${g.ratings.map(r=>`<tr><td>${r.d}</td><td>${r.holing}</td><td>${r.short}</td><td>${r.wedge}</td><td>${r.flight}</td><td>${r.plan}</td></tr>`).join('')}
-        </table>
-      </div>
-      <button class='btn' onclick='nav("compare")'>Back to Compare</button>`;
-  }
-  else {
-    main.innerHTML = `<h1>${view}</h1><p>Placeholder view.</p>`;
-  }
-}
-
-function impersonate(role){
-  document.getElementById("whoami").textContent="Role: "+role;
-  const roleNav=document.getElementById("roleNav"); roleNav.innerHTML="";
-  let pages=[];
-  if(role==="coach") pages=["Compare"];
-  else if(role==="golfer") pages=["Dashboard","Physical Trends","Coach Rating Trends"];
-  else if(role==="admin") pages=["Users","Compliance"];
-  pages.forEach(p=>{
-    const b=document.createElement("button");
-    b.textContent=p;
-    b.onclick=()=>nav(p.toLowerCase().replace(/ /g,"-"));
-    roleNav.appendChild(b);
-  });
-  if(pages.length) nav(pages[0].toLowerCase().replace(/ /g,"-"));
-}
-
-function openProfile(id){
-  state.currentGolfer=state.golfers.find(x=>x.id===id);
-  nav("profile");
-}
-</script>
 </head>
 <body>
 <div class="app">
@@ -148,5 +70,274 @@ function openProfile(id){
     </div>
   </main>
 </div>
+
+<script>
+/* ----------------------------------------------------------
+   Demo data + utilities (same as before)
+---------------------------------------------------------- */
+const RNG = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(123456);
+function rand(min, max){ return Math.round((min + (max-min)*RNG())*10)/10; }
+function randi(min, max){ return Math.floor(min + (max-min+1)*RNG()); }
+
+const QUARTERS = ["2024-10", "2025-01", "2025-04", "2025-07"];
+const FIRSTS = ["Millie","Jack","Ben","Louisa","Ollie","Oscar","Eli","Kye","Olivia","George","Harry","Tom","Evie","Charlie","Aidan","Lewi","Louisa","Nate","Willow","Sam","Tyler","Thomas","Finley","Imogen","Poppy","Noah","Maya","Isaac","Ruby","Theo","Lily","Henry","Sofia","Leo"];
+const LASTS  = ["Hixon","Harrison","Dobson","Hamilton","Porteous","Knowles","Gales","Bouttell","Metcalfe","Reed","Sheen","Hartshorne","Goodman","Curry","Robson","O’Rourke","Suggitt","Doherty","Scott","Perkins","Hudson","Hall","Marsden","Balderson","Parker","Hill","Stone","Bennett","Morris","Wright","Kelly","Brooks","Shaw","Foster","Cooper","James"];
+
+function makeGolfer(i){
+  const f = FIRSTS[i % FIRSTS.length];
+  const l = LASTS[i % LASTS.length];
+  const dobYear = randi(2008, 2014);
+  const dob = `${dobYear}-${String(randi(1,12)).padStart(2,'0')}-${String(randi(1,28)).padStart(2,'0')}`;
+  const age = 2025 - dobYear;
+  const baseSG = rand(0.0, 2.0);
+  const putt   = Math.max(-0.5, Math.min(1.2, rand(0.0, 0.8)));
+  const hi     = Math.max(0, Math.round((8 - baseSG*2 + rand(-0.5,1.0))*10)/10);
+
+  const sg = QUARTERS.map((q,idx)=>({
+    d:q,
+    total: Math.round((baseSG + (idx-2)*0.1 + rand(-0.2,0.2))*10)/10,
+    tee:   Math.round((rand(-0.3,0.9))*10)/10,
+    approach:Math.round((rand(-0.2,0.8))*10)/10,
+    short: Math.round((rand(-0.2,0.6))*10)/10,
+    putting: Math.round((putt + (idx-1)*0.05 + rand(-0.15,0.15))*10)/10
+  }));
+
+  const phys = QUARTERS.map((q,idx)=>{
+    const chs = randi(92,108) + idx;
+    const ball= chs + randi(40,46);
+    return { d:q, chs, ball, cmj:randi(28,40), bj:randi(200,260), height: randi(150,190), weight:randi(45,85) };
+  });
+
+  const ratings = QUARTERS.map((q)=>({
+    d:q, holing:randi(5,9), short:randi(5,9), wedge:randi(5,9), flight:randi(5,9), plan:randi(5,9)
+  }));
+
+  return { id:i+1, name:`${f} ${l}`, dob, age, hi, sg, phys, ratings };
+}
+
+const state = {
+  golfers: Array.from({length:40}, (_,i)=>makeGolfer(i)),
+  currentGolfer:null,
+  role:null,
+  loggedGolferId: 1, // pretend golfer #1 is the logged-in user for the dashboard
+  compare: {
+    dateWindow: "This Cycle",
+    columns: ["HI","SG Total","SG Putting","Ball Speed","CHS"]
+  }
+};
+
+function last(arr){ return arr[arr.length-1]; }
+function avg(nums){ return Math.round((nums.reduce((a,b)=>a+b,0)/nums.length)*10)/10; }
+function fmt(n){ return (n===null||n===undefined||Number.isNaN(n)) ? "—" : n; }
+function qWindowDates(win){
+  if(win==="This Cycle") return QUARTERS.slice(-1);
+  if(win==="90 days")    return QUARTERS.slice(-1);
+  if(win==="6 months")   return QUARTERS.slice(-2);
+  return QUARTERS;
+}
+
+/* Simple inline sparkline generator */
+function sparkline(values, w=180, h=48, strokeClass="spark"){
+  if(!values || values.length===0) return "";
+  const min = Math.min(...values), max = Math.max(...values);
+  const pad = 6, innerW = w - pad*2, innerH = h - pad*2;
+  const sx = i => pad + (i/(values.length-1))*innerW;
+  const sy = v => pad + innerH - (values.length===1 ? innerH/2 : ((v-min)/(max-min||1))*innerH);
+  const d = values.map((v,i)=> (i===0?`M ${sx(i)} ${sy(v)}`:`L ${sx(i)} ${sy(v)}`)).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <path class="${strokeClass}" d="${d}"/></svg>`;
+}
+
+/* ----------------------------------------------------------
+   Views
+---------------------------------------------------------- */
+function nav(view) {
+  const main = document.getElementById("mainContent");
+
+  if (view==="dashboard"){
+    // Golfer dashboard view
+    const g = state.golfers.find(x=>x.id===state.loggedGolferId) || state.golfers[0];
+    const sgTotals = g.sg.map(s=>s.total);
+    const physBall = g.phys.map(p=>p.ball);
+    const physCHS  = g.phys.map(p=>p.chs);
+    const ratingAvg= g.ratings.map(r=>avg([r.holing,r.short,r.wedge,r.flight,r.plan]));
+    const nextUpdate = "2025-10-01"; // placeholder
+
+    main.innerHTML = `
+      <h1>Golfer Dashboard</h1>
+      <div class="card"><strong>Welcome, ${g.name.split(" ")[0]}.</strong> Next required update: <b>${nextUpdate}</b>.</div>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="kpi">${fmt(g.hi)} <span class="muted">HI</span></div>
+          <div class="muted">Handicap Index (current)</div>
+        </div>
+
+        <div class="card">
+          <div class="sparkwrap">
+            ${sparkline(sgTotals, 200, 48, "spark")}
+            <div>
+              <div class="kpi">${fmt(last(sgTotals))}</div>
+              <div class="muted">SG Total (last 4)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sparkwrap">
+            ${sparkline(physBall, 200, 48, "spark")}
+            ${sparkline(physCHS, 200, 48, "spark2")}
+            <div>
+              <div class="kpi">${fmt(last(physBall))} <span class="muted">mph</span></div>
+              <div class="muted">Ball Speed (overlay CHS)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sparkwrap">
+            ${sparkline(ratingAvg, 200, 48, "spark")}
+            <div>
+              <div class="kpi">${fmt(last(ratingAvg))}</div>
+              <div class="muted">Coach Rating (avg)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Quick Links</h3>
+          <div class="grid grid-2">
+            <button class="btn" onclick="nav('compare')">Compare (coach view)</button>
+            <button class="btn" onclick="openProfile(${g.id})">Your Profile</button>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (view==="compare"){ renderCompare(main); return; }
+
+  if (view==="profile"){
+    const g = state.currentGolfer;
+    if(!g){ main.innerHTML = "<p>No golfer selected.</p>"; return; }
+    const physRows = g.phys.map(p=>`<tr><td>${p.d}</td><td>${p.chs}</td><td>${p.ball}</td><td>${p.cmj}</td><td>${p.bj}</td><td>${p.height}</td><td>${p.weight}</td></tr>`).join("");
+    const rateRows = g.ratings.map(r=>`<tr><td>${r.d}</td><td>${r.holing}</td><td>${r.short}</td><td>${r.wedge}</td><td>${r.flight}</td><td>${r.plan}</td></tr>`).join("");
+    const sgRows   = g.sg.map(s=>`<tr><td>${s.d}</td><td>${s.total}</td><td>${s.tee}</td><td>${s.approach}</td><td>${s.short}</td><td>${s.putting}</td></tr>`).join("");
+    main.innerHTML = `
+      <h1>${g.name} – Profile</h1>
+      <div class="card"><strong>Handicap:</strong> ${fmt(g.hi)} | <strong>Age:</strong> ${g.age}</div>
+      <div class="card"><h2>Physical Trends</h2><table class="table"><thead><tr><th>Date</th><th>CHS</th><th>Ball</th><th>CMJ</th><th>BJ</th><th>Height</th><th>Weight</th></tr></thead><tbody>${physRows}</tbody></table></div>
+      <div class="card"><h2>Coach Rating Trends</h2><table class="table"><thead><tr><th>Date</th><th>Holing</th><th>Short</th><th>Wedge</th><th>Flight</th><th>Plan</th></tr></thead><tbody>${rateRows}</tbody></table></div>
+      <div class="card"><h2>SG History</h2><table class="table"><thead><tr><th>Date</th><th>Total</th><th>Tee</th><th>Approach</th><th>Short</th><th>Putting</th></tr></thead><tbody>${sgRows}</tbody></table></div>
+      <button class="btn" onclick='nav("compare")'>Back to Compare</button>
+    `;
+    return;
+  }
+
+  // Fallback
+  main.innerHTML = `<h1>${view}</h1><p>Placeholder view.</p>`;
+}
+
+/* Role navigation */
+function impersonate(role){
+  state.role = role;
+  document.getElementById("whoami").textContent="Role: "+role;
+  const roleNav=document.getElementById("roleNav"); roleNav.innerHTML="";
+  let pages=[];
+  if(role==="coach") pages=["Compare"];
+  else if(role==="golfer") pages=["Dashboard","Physical Trends","Coach Rating Trends"]; // Trends are placeholders here
+  else if(role==="admin") pages=["Users","Compliance"];
+  pages.forEach(p=>{
+    const b=document.createElement("button");
+    b.textContent=p;
+    b.onclick=()=>nav(p.toLowerCase().replace(/ /g,"-"));
+    roleNav.appendChild(b);
+  });
+  if(pages.length) nav(pages[0].toLowerCase().replace(/ /g,"-"));
+}
+function openProfile(id){ state.currentGolfer=state.golfers.find(x=>x.id===id); nav("profile"); }
+
+/* Coach → Compare */
+function renderCompare(main){
+  const colsAll = ["HI","SG Total","SG Putting","SG Tee","SG Approach","SG Short","Ball Speed","CHS","CMJ","BJ","Height","Weight"];
+  const selected = new Set(state.compare.columns);
+  const dateWin = state.compare.dateWindow;
+  const lastDates = qWindowDates(dateWin);
+  const rows = state.golfers.map(g=>{
+    const sgRec = [...g.sg].reverse().find(s=>lastDates.includes(s.d)) || last(g.sg);
+    const phRec = [...g.phys].reverse().find(p=>lastDates.includes(p.d)) || last(g.phys);
+    return {id:g.id, name:g.name, hi:g.hi, sg_total: sgRec?.total ?? null, sg_putt: sgRec?.putting ?? null, sg_tee: sgRec?.tee ?? null, sg_app: sgRec?.approach ?? null, sg_short: sgRec?.short ?? null, ball: phRec?.ball ?? null, chs: phRec?.chs ?? null, cmj: phRec?.cmj ?? null, bj: phRec?.bj ?? null, height: phRec?.height ?? null, weight: phRec?.weight ?? null};
+  });
+  let sortKey = "sg_total", sortDir = -1;
+  function sortRows(){ rows.sort((a,b)=>{const va=a[sortKey], vb=b[sortKey]; if(va==null&&vb==null) return 0; if(va==null) return 1; if(vb==null) return -1; return sortDir*(va-vb);}); }
+  sortRows();
+  const renderHeader = (label, key)=>selected.has(label)?`<th role="button" onclick="__cmpSort('${key}')">${label}</th>`:"";
+  const renderCell = (label, value)=>selected.has(label)?`<td>${fmt(value)}</td>`:"";
+  window.__cmpSort = function(key){ if(sortKey===key) sortDir*=-1; else {sortKey=key; sortDir=-1;} sortRows(); render(); };
+  function toCSV(rows){ return rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n"); }
+  function download(filename, text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'})); a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+  window.__cmpCSV = function(){ const head=["Name",...colsAll.filter(c=>selected.has(c))]; const body=rows.map(r=>{const map={"HI":r.hi,"SG Total":r.sg_total,"SG Putting":r.sg_putt,"SG Tee":r.sg_tee,"SG Approach":r.sg_app,"SG Short":r.sg_short,"Ball Speed":r.ball,"CHS":r.chs,"CMJ":r.cmj,"BJ":r.bj,"Height":r.height,"Weight":r.weight}; return [r.name,...colsAll.filter(c=>selected.has(c)).map(c=>map[c])];}); download("compare.csv", toCSV([head,...body])); };
+  function render(){
+    main.innerHTML = `
+      <h1>Compare Golfers</h1>
+      <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <label>Date Window:
+          <select id="cmpWin">${["This Cycle","90 days","6 months","All"].map(w=>`<option ${w===dateWin?"selected":""}>${w}</option>`).join("")}</select>
+        </label>
+        <details><summary style="cursor:pointer">Columns</summary><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">${colsAll.map(c=>`<label><input type="checkbox" ${selected.has(c)?"checked":""} data-col="${c}"/> ${c}</label>`).join("")}</div></details>
+        <button class="btn" onclick="__cmpCSV()">Export CSV</button>
+      </div>
+      <div class="card" style="overflow:auto">
+        <table class="table">
+          <thead><tr><th>Name</th>
+            ${renderHeader("HI","hi")}
+            ${renderHeader("SG Total","sg_total")}
+            ${renderHeader("SG Putting","sg_putt")}
+            ${renderHeader("SG Tee","sg_tee")}
+            ${renderHeader("SG Approach","sg_app")}
+            ${renderHeader("SG Short","sg_short")}
+            ${renderHeader("Ball Speed","ball")}
+            ${renderHeader("CHS","chs")}
+            ${renderHeader("CMJ","cmj")}
+            ${renderHeader("BJ","bj")}
+            ${renderHeader("Height","height")}
+            ${renderHeader("Weight","weight")}
+            <th>Profile</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map(r=>`<tr>
+              <td>${r.name}</td>
+              ${renderCell("HI",r.hi)}
+              ${renderCell("SG Total",r.sg_total)}
+              ${renderCell("SG Putting",r.sg_putt)}
+              ${renderCell("SG Tee",r.sg_tee)}
+              ${renderCell("SG Approach",r.sg_app)}
+              ${renderCell("SG Short",r.sg_short)}
+              ${renderCell("Ball Speed",r.ball)}
+              ${renderCell("CHS",r.chs)}
+              ${renderCell("CMJ",r.cmj)}
+              ${renderCell("BJ",r.bj)}
+              ${renderCell("Height",r.height)}
+              ${renderCell("Weight",r.weight)}
+              <td><button class="btn" onclick="openProfile(${r.id})">View</button></td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById("cmpWin").onchange = e=>{state.compare.dateWindow=e.target.value; renderCompare(main);};
+    main.querySelectorAll('input[type="checkbox"][data-col]').forEach(cb=>{
+      cb.onchange=e=>{
+        const col=e.target.getAttribute("data-col");
+        if(e.target.checked) selected.add(col); else selected.delete(col);
+        state.compare.columns=Array.from(selected);
+        render();
+      };
+    });
+  }
+  render();
+}
+</script>
 </body>
 </html>
