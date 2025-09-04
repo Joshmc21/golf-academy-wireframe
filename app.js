@@ -279,6 +279,8 @@ function navTo(view){
 
   // fallback
   main.innerHTML = `<h1>${view}</h1><p>Placeholder view.</p>`;
+    // Re-render Easter Egg button after navigation
+  if (window.renderEggButton) window.renderEggButton();
 }
 
 /* ======== Golfer views (same as before, wrapped in functions) ======== */
