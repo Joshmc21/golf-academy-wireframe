@@ -76,3 +76,15 @@ td.num, th.num { text-align: right }
 
 /* SVG axis label styling */
 svg text { fill:#555; font-family: Helvetica, Arial, sans-serif }
+
+/* === Easter Egg styles === */
+.egg-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
+.egg-modal[aria-hidden="false"]{display:flex}
+.egg-modal__dialog{background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.25);padding:12px;max-width:760px;width:95%}
+.egg-close{position:absolute;margin:-6px 0 0 0;right:calc(2.5% + 8px);background:#000;color:#fff;border:none;border-radius:10px;width:32px;height:32px;cursor:pointer;font-size:20px;line-height:30px}
+.egg-hud{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:8px;font-size:14px}
+#eggCanvas{width:100%;height:auto;border:1px solid #d9d9d9;border-radius:12px;background:linear-gradient(#4CAF50,#2E7D32)}
+.egg-fab{position:fixed;right:18px;bottom:18px;width:54px;height:54px;border-radius:50%;border:none;background:#FFBF00;color:#000;font-size:22px;box-shadow:0 8px 24px rgba(0,0,0,.2);cursor:pointer;display:none}
+.egg-fab:hover{transform:translateY(-1px)}
+/* optional: aim arrow */
+.egg-aim{pointer-events:none}
