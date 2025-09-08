@@ -244,6 +244,7 @@ function impersonate(role){
     nav.appendChild(b);
   });
   if(pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
+  if (window.renderEggButton) window.renderEggButton();
 }
 
 function navTo(view){
@@ -1519,6 +1520,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Mobile-friendly triggers: 5 logo taps OR long-press bottom-right hotspot
 document.addEventListener('DOMContentLoaded', () => {
+    // Ensure FAB renders on first load + support deep link
+  if (window.renderEggButton) window.renderEggButton();
+  if (location.hash.replace('#','') === 'golf' && window.openChipAndPutt) window.openChipAndPutt();
+
   // 5 taps on the logo within ~1.2s
   const logo = document.querySelector('.logo');
   if (logo) {
