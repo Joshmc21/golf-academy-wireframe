@@ -1311,9 +1311,10 @@ function renderCoachProfile(main){
     canvas.addEventListener('mousedown', onDown);
     canvas.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-    canvas.addEventListener('touchstart', onTouchDown, {passive:false});
-    canvas.addEventListener('touchmove', onTouchMove, {passive:false});
-    canvas.addEventListener('touchend', onTouchEnd);
+   canvas.addEventListener('touchstart', onTouchDown, { passive: false });
+canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
+canvas.addEventListener('touchend',   onTouchEnd,   { passive: false });
+
   }
   function detachCanvasHandlers(){
     canvas.removeEventListener('mousedown', onDown);
@@ -1355,6 +1356,31 @@ function renderCoachProfile(main){
   function onTouchDown(e){ e.preventDefault(); onDown(e); }
   function onTouchMove(e){ e.preventDefault(); onMove(e); }
   function onTouchEnd(e){ e.preventDefault(); onUp(e); }
+
+function onTouchDown(e){
+  e.preventDefault();
+  if (finished) return;
+  const p = tpt(e); // use touch coordinates helper
+  // start drag only if touch begins on/near the ball
+  if (Math.hypot(p.x - ball.x, p.y - ball.y) <= ball.r + 4) {
+    dragging = true;
+    aimStart = { x: ball.x, y: ball.y };
+    aimEnd = p;
+    draw();
+  }
+}
+function onTouchMove(e){
+  e.preventDefault();
+  if (!dragging) return;
+  aimEnd = tpt(e); // update aim end with touch position
+  draw();
+}
+function onTouchEnd(e){
+  e.preventDefault();
+  if (!dragging) return;
+  dragging = false;
+  puttFromAim();
+}
 
   function puttFromAim(){
     if(!aimStart || !aimEnd) return;
@@ -1541,9 +1567,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Long-press (800ms) invisible hotspot bottom-right
-  const hot = document.createElement('div');
-  hot.style.cssText = 'position:fixed;right:8px;bottom:8px;width:56px;height:56px;z-index:2147483647;opacity:0;';
-  document.body.appendChild(hot);
+const hot = document.createElement('div');
+// place away from the FAB so it doesn't overlap, and reduce z-index
+hot.style.cssText = 'position:fixed;right:84px;bottom:84px;width:56px;height:56px;z-index:2147483000;opacity:0;pointer-events:auto;';
+document.body.appendChild(hot);
   let pressTimer = null;
   const arm = () => { pressTimer = setTimeout(() => { window.renderEggButton?.(); try { toast('Chip & Putt ready!'); } catch {} }, 800); };
   const disarm = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
