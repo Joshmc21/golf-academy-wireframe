@@ -281,6 +281,9 @@ function navTo(view){
   main.innerHTML = `<h1>${view}</h1><p>Placeholder view.</p>`;
     // Re-render Easter Egg button after navigation
   if (window.renderEggButton) window.renderEggButton();
+
+    // Keep the Chip & Putt FAB after any view render
+  if (window.renderEggButton) window.renderEggButton();
 }
 
 /* ======== Golfer views (same as before, wrapped in functions) ======== */
@@ -1506,3 +1509,40 @@ function renderCoachProfile(main){
 })();
 // Show Easter Egg button if game is loaded
 if (window.renderEggButton) window.renderEggButton();
+// On first load, render the FAB and support a URL shortcut (#golf)
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.renderEggButton) window.renderEggButton();
+  if (location.hash.replace('#','') === 'golf' && window.openChipAndPutt) {
+    window.openChipAndPutt();
+  }
+});
+
+// Mobile-friendly triggers: 5 logo taps OR long-press bottom-right hotspot
+document.addEventListener('DOMContentLoaded', () => {
+  // 5 taps on the logo within ~1.2s
+  const logo = document.querySelector('.logo');
+  if (logo) {
+    let taps = 0, last = 0;
+    logo.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - last > 1200) taps = 0;
+      last = now;
+      if (++taps >= 5) {
+        taps = 0;
+        window.renderEggButton?.();
+        try { toast('Chip & Putt ready!'); } catch {}
+      }
+    });
+  }
+
+  // Long-press (800ms) invisible hotspot bottom-right
+  const hot = document.createElement('div');
+  hot.style.cssText = 'position:fixed;right:8px;bottom:8px;width:56px;height:56px;z-index:2147483647;opacity:0;';
+  document.body.appendChild(hot);
+  let pressTimer = null;
+  const arm = () => { pressTimer = setTimeout(() => { window.renderEggButton?.(); try { toast('Chip & Putt ready!'); } catch {} }, 800); };
+  const disarm = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+  hot.addEventListener('touchstart', arm, { passive: true });
+  hot.addEventListener('mousedown', arm);
+  ['touchend','touchcancel','mouseup','mouseleave'].forEach(evt => hot.addEventListener(evt, disarm));
+});
