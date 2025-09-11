@@ -1578,3 +1578,8 @@ document.body.appendChild(hot);
   hot.addEventListener('mousedown', arm);
   ['touchend','touchcancel','mouseup','mouseleave'].forEach(evt => hot.addEventListener(evt, disarm));
 });
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(console.error);
+  });
+}
