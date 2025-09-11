@@ -1,4 +1,4 @@
-const CACHE = "propath-v1";
+const CACHE = "propath-v2";
 const ASSETS = [
   "/", "/index.html",
   "/manifest.json",
