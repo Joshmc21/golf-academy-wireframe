@@ -1,3 +1,16 @@
+// Supabase: simple init
+const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
+const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+// Quick test helper you can run in the browser console
+window.testSupabase = async () => {
+  const { data, error } = await supabase.from("golfers").select("id, hi").limit(1);
+  if (error) console.error("Supabase error:", error.message);
+  else console.log("Supabase OK:", data);
+};
+
+
 /* ================= Deterministic demo data ================= */
 const RNG = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(123456);
 const rand = (min,max) => Math.round((min+(max-min)*RNG())*10)/10;
