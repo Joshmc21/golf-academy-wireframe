@@ -11,6 +11,8 @@ window.testSupabase = async () => {
 };
 
 // === Load the real golfer from Supabase (keeps the same shape the UI already uses) ===
+
+// === REPLACE the whole loadGolferFromDB with this ===
 async function loadGolferFromDB(userId) {
   // base info
   const { data: golferRow, error: gErr } = await supabase
@@ -18,79 +20,75 @@ async function loadGolferFromDB(userId) {
     .select('hi, dob')
     .eq('user_id', userId)
     .single();
-  if (gErr) { console.error(gErr); throw gErr; }
+  if (gErr) { console.error('golfers:', gErr); throw gErr; }
 
-  // SG quarterly
-const { data: sgRows, error: sgErr } = await supabase
-  .from('sg_quarter')
-  .select('d, total, tee, approach, short, putting')
-  .eq('user_id', userId)
-  .order('d');
-if (sgErr) console.error(sgErr);
-const sg = (sgRows || []).map(r => ({
-  d: r.d,
-  total: Number(r.total ?? 0),
-  tee: Number(r.tee ?? 0),
-  approach: Number(r.approach ?? 0),
-  short: Number(r.short ?? 0),
-  putting: Number(r.putting ?? 0),
-}));
+  // ---- SG quarterly (uses d, total, tee, approach, short, putting) ----
+  const { data: sgRows, error: sgErr } = await supabase
+    .from('sg_quarter')
+    .select('d, total, tee, approach, short, putting')
+    .eq('user_id', userId)
+    .order('d');
+  if (sgErr) console.error('sg_quarter:', sgErr);
+  const sg = (sgRows || []).map(r => ({
+    d: r.d,
+    total: Number(r.total ?? 0),
+    tee: Number(r.tee ?? 0),
+    approach: Number(r.approach ?? 0),
+    short: Number(r.short ?? 0),
+    putting: Number(r.putting ?? 0),
+  }));
 
-// Physical quarterly (chs, ball, cmj, bj, height, weight)
-const { data: physRows, error: pErr } = await supabase
-  .from('phys_quarter')
-  .select('d, chs, ball, cmj, bj, height, weight')
-  .eq('user_id', userId)
-  .order('d');
-if (pErr) console.error(pErr);
-const phys = (physRows || []).map(r => ({
-  d: r.d,
-  chs: Number(r.chs ?? 0),
-  ball: Number(r.ball ?? 0),
-  cmj: Number(r.cmj ?? 0),
-  bj: Number(r.bj ?? 0),
-  height: Number(r.height ?? 0),
-  weight: Number(r.weight ?? 0),
-}));
-  
-// Coach ratings quarterly (holing, short, wedge, flight, plan)
-const { data: rateRows, error: rErr } = await supabase
-  .from('coach_ratings')
-  .select('d, holing, short, wedge, flight, plan')
-  .eq('user_id', userId)
-  .order('d');
-if (rErr) console.error(rErr);
-const ratings = (rateRows || []).map(r => ({
-  d: r.d,
-  holing: Number(r.holing ?? 0),
-  short: Number(r.short ?? 0),
-  wedge: Number(r.wedge ?? 0),
-  flight: Number(r.flight ?? 0),
-  plan: Number(r.plan ?? 0),
-}));
-  
+  // ---- Physical quarterly (uses d, chs, ball, cmj, bj, height, weight) ----
+  const { data: physRows, error: pErr } = await supabase
+    .from('phys_quarter')
+    .select('d, chs, ball, cmj, bj, height, weight')
+    .eq('user_id', userId)
+    .order('d');
+  if (pErr) console.error('phys_quarter:', pErr);
+  const phys = (physRows || []).map(r => ({
+    d: r.d,
+    chs: Number(r.chs ?? 0),
+    ball: Number(r.ball ?? 0),
+    cmj: Number(r.cmj ?? 0),
+    bj: Number(r.bj ?? 0),
+    height: Number(r.height ?? 0),
+    weight: Number(r.weight ?? 0),
+  }));
 
-  // Attendance quarterly (stored as d, "group", one1)
+  // ---- Coach ratings quarterly (uses d, holing, short, wedge, flight, plan) ----
+  const { data: rateRows, error: rErr } = await supabase
+    .from('coach_ratings')
+    .select('d, holing, short, wedge, flight, plan')
+    .eq('user_id', userId)
+    .order('d');
+  if (rErr) console.error('coach_ratings:', rErr);
+  const ratings = (rateRows || []).map(r => ({
+    d: r.d,
+    holing: Number(r.holing ?? 0),
+    short: Number(r.short ?? 0),
+    wedge: Number(r.wedge ?? 0),
+    flight: Number(r.flight ?? 0),
+    plan: Number(r.plan ?? 0),
+  }));
+
+  // ---- Attendance (already correct: d, "group", one1) ----
   const { data: attRows, error: aErr } = await supabase
     .from('attendance')
     .select('d, "group", one1')
     .eq('user_id', userId)
     .order('d');
-  if (aErr) console.error(aErr);
+  if (aErr) console.error('attendance:', aErr);
   const attendance = (attRows || []).map(r => ({
     d: r.d,
     group: Number(r.group ?? 0),
     one1: Number(r.one1 ?? 0),
   }));
 
-  // Build the golfer object the UI expects
   return {
-    id: userId,                 // important: use uid here
-    name: 'Demo Golfer',        // optional label
+    id: userId,
+    name: 'Demo Golfer',
     hi: Number(golferRow?.hi ?? 0),
     dob: golferRow?.dob ?? null,
-    age: null,                  // not needed for golfer view
-    agePrecise: null,           // (coach tables compute these on mock data only)
     sg,
     phys,
     ratings,
@@ -343,6 +341,16 @@ async function impersonate(role){
     state.loggedGolferId = uid;     // make getLoggedGolfer() return this golfer
     state.currentGolfer = golfer;
   }
+
+  const nav = document.getElementById("roleNav"); nav.innerHTML = "";
+  let pages = [];
+  if (role === "golfer") pages = ["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
+  if (role === "coach")  pages = ["Compare","Correlations","Trends"];
+  if (role === "admin")  pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
+  pages.forEach(p => { const b=document.createElement("button"); b.textContent=p; b.onclick=()=>navTo(p.toLowerCase().replace(/ /g,"-")); nav.appendChild(b); });
+  if (pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
+  if (window.renderEggButton) window.renderEggButton();
+}
 
   // Build the role nav (unchanged)
   const nav = document.getElementById("roleNav"); nav.innerHTML = "";
