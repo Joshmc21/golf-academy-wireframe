@@ -21,56 +21,54 @@ async function loadGolferFromDB(userId) {
   if (gErr) { console.error(gErr); throw gErr; }
 
   // SG quarterly
-  const { data: sgRows, error: sgErr } = await supabase
-    .from('sg_quarter')
-    .select('year, quarter, sg_total, sg_tee, sg_app, sg_arg, sg_putt')
-    .eq('user_id', userId)
-    .order('year')
-    .order('quarter');
-  if (sgErr) console.error(sgErr);
-  const sg = (sgRows || []).map(r => ({
-    d: `${r.year}-Q${r.quarter}`,
-    total: Number(r.sg_total ?? 0),
-    tee: Number(r.sg_tee ?? 0),
-    approach: Number(r.sg_app ?? 0),
-    short: Number(r.sg_arg ?? 0),
-    putting: Number(r.sg_putt ?? 0),
-  }));
+const { data: sgRows, error: sgErr } = await supabase
+  .from('sg_quarter')
+  .select('d, total, tee, approach, short, putting')
+  .eq('user_id', userId)
+  .order('d');
+if (sgErr) console.error(sgErr);
+const sg = (sgRows || []).map(r => ({
+  d: r.d,
+  total: Number(r.total ?? 0),
+  tee: Number(r.tee ?? 0),
+  approach: Number(r.approach ?? 0),
+  short: Number(r.short ?? 0),
+  putting: Number(r.putting ?? 0),
+}));
 
-  // Physical quarterly (chs, ball, cmj, bj, height, weight)
-  const { data: physRows, error: pErr } = await supabase
-    .from('phys_quarter')
-    .select('year, quarter, chs, ball, cmj, bj, height, weight')
-    .eq('user_id', userId)
-    .order('year')
-    .order('quarter');
-  if (pErr) console.error(pErr);
-  const phys = (physRows || []).map(r => ({
-    d: `${r.year}-Q${r.quarter}`,
-    chs: Number(r.chs ?? 0),
-    ball: Number(r.ball ?? 0),
-    cmj: Number(r.cmj ?? 0),
-    bj: Number(r.bj ?? 0),
-    height: Number(r.height ?? 0),
-    weight: Number(r.weight ?? 0),
-  }));
-
-  // Coach ratings quarterly (holing, short, wedge, flight, plan)
-  const { data: rateRows, error: rErr } = await supabase
-    .from('coach_ratings')
-    .select('year, quarter, holing, short, wedge, flight, plan')
-    .eq('user_id', userId)
-    .order('year')
-    .order('quarter');
-  if (rErr) console.error(rErr);
-  const ratings = (rateRows || []).map(r => ({
-    d: `${r.year}-Q${r.quarter}`,
-    holing: Number(r.holing ?? 0),
-    short: Number(r.short ?? 0),
-    wedge: Number(r.wedge ?? 0),
-    flight: Number(r.flight ?? 0),
-    plan: Number(r.plan ?? 0),
-  }));
+// Physical quarterly (chs, ball, cmj, bj, height, weight)
+const { data: physRows, error: pErr } = await supabase
+  .from('phys_quarter')
+  .select('d, chs, ball, cmj, bj, height, weight')
+  .eq('user_id', userId)
+  .order('d');
+if (pErr) console.error(pErr);
+const phys = (physRows || []).map(r => ({
+  d: r.d,
+  chs: Number(r.chs ?? 0),
+  ball: Number(r.ball ?? 0),
+  cmj: Number(r.cmj ?? 0),
+  bj: Number(r.bj ?? 0),
+  height: Number(r.height ?? 0),
+  weight: Number(r.weight ?? 0),
+}));
+  
+// Coach ratings quarterly (holing, short, wedge, flight, plan)
+const { data: rateRows, error: rErr } = await supabase
+  .from('coach_ratings')
+  .select('d, holing, short, wedge, flight, plan')
+  .eq('user_id', userId)
+  .order('d');
+if (rErr) console.error(rErr);
+const ratings = (rateRows || []).map(r => ({
+  d: r.d,
+  holing: Number(r.holing ?? 0),
+  short: Number(r.short ?? 0),
+  wedge: Number(r.wedge ?? 0),
+  flight: Number(r.flight ?? 0),
+  plan: Number(r.plan ?? 0),
+}));
+  
 
   // Attendance quarterly (stored as d, "group", one1)
   const { data: attRows, error: aErr } = await supabase
