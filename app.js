@@ -329,28 +329,42 @@ const COMPARE_PRESETS = [
 
 /* ================= Navigation + Guards ================= */
 
-async function impersonate(role){
+async function impersonate(role) {
   state.role = role;
   document.getElementById("whoami").textContent = "Role: " + role;
 
-  // When impersonating a golfer, load the real data from Supabase
   if (role === "golfer") {
-    const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // your demo golfer UID
+    const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // demo golfer UID
     const golfer = await loadGolferFromDB(uid);
     state.golfers = [golfer];
-    state.loggedGolferId = uid;     // make getLoggedGolfer() return this golfer
+    state.loggedGolferId = uid;
     state.currentGolfer = golfer;
   }
 
-  const nav = document.getElementById("roleNav"); nav.innerHTML = "";
+  const nav = document.getElementById("roleNav");
+  nav.innerHTML = "";
+
   let pages = [];
-  if (role === "golfer") pages = ["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
-  if (role === "coach")  pages = ["Compare","Correlations","Trends"];
-  if (role === "admin")  pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
-  pages.forEach(p => { const b=document.createElement("button"); b.textContent=p; b.onclick=()=>navTo(p.toLowerCase().replace(/ /g,"-")); nav.appendChild(b); });
-  if (pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
+  if (role === "golfer")
+    pages = ["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
+  if (role === "coach")
+    pages = ["Compare","Correlations","Trends"];
+  if (role === "admin")
+    pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
+
+  pages.forEach(p => {
+    const b = document.createElement("button");
+    b.textContent = p;
+    b.onclick = () => navTo(p.toLowerCase().replace(/ /g, "-"));
+    nav.appendChild(b);
+  });
+
+  if (pages.length)
+    navTo(pages[0].toLowerCase().replace(/ /g, "-"));
+
   if (window.renderEggButton) window.renderEggButton();
 }
+
 
   // Build the role nav (unchanged)
   const nav = document.getElementById("roleNav"); nav.innerHTML = "";
