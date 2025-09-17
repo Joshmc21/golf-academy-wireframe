@@ -19,41 +19,48 @@ async function loadGolferFromDB(userId) {
     .select('hi, dob')
     .eq('user_id', userId)
     .single();
-  if (gErr) console.warn('golfers:', gErr); // don't throw; we can still render with defaults
+  if (gErr) { console.error('golfers:', gErr); throw gErr; }
 
-  // SG (d, total, tee, approach, short, putting)
+  // SG (year, quarter, total, tee, approach, short, putting)
   const { data: sgRows } = await supabase
     .from('sg_quarter')
-    .select('d, total, tee, approach, short, putting')
+    .select('year, quarter, total, tee, approach, short, putting')
     .eq('user_id', userId)
-    .order('d');
+    .order('year')
+    .order('quarter');
   const sg = (sgRows || []).map(r => ({
-    d: r.d, total: +r.total || 0, tee: +r.tee || 0,
-    approach: +r.approach || 0, short: +r.short || 0, putting: +r.putting || 0
+    label: `${r.year}-Q${r.quarter}`,
+    total:+r.total||0, tee:+r.tee||0,
+    approach:+r.approach||0, short:+r.short||0, putting:+r.putting||0
   }));
 
-  // Phys (d, chs, ball, cmj, bj, height, weight)
+  // Phys (year, quarter, chs, ball, cmj, bj, height, weight)
   const { data: physRows } = await supabase
     .from('phys_quarter')
-    .select('d, chs, ball, cmj, bj, height, weight')
+    .select('year, quarter, chs, ball, cmj, bj, height, weight')
     .eq('user_id', userId)
-    .order('d');
+    .order('year')
+    .order('quarter');
   const phys = (physRows || []).map(r => ({
-    d: r.d, chs:+r.chs||0, ball:+r.ball||0, cmj:+r.cmj||0, bj:+r.bj||0,
+    label:`${r.year}-Q${r.quarter}`,
+    chs:+r.chs||0, ball:+r.ball||0, cmj:+r.cmj||0, bj:+r.bj||0,
     height:+r.height||0, weight:+r.weight||0
   }));
 
-  // Coach ratings (d, holing, short, wedge, flight, plan)
+  // Coach ratings (year, quarter, holing, short, wedge, flight, plan)
   const { data: rateRows } = await supabase
     .from('coach_ratings')
-    .select('d, holing, short, wedge, flight, plan')
+    .select('year, quarter, holing, short, wedge, flight, plan')
     .eq('user_id', userId)
-    .order('d');
+    .order('year')
+    .order('quarter');
   const ratings = (rateRows || []).map(r => ({
-    d:r.d, holing:+r.holing||0, short:+r.short||0, wedge:+r.wedge||0, flight:+r.flight||0, plan:+r.plan||0
+    label:`${r.year}-Q${r.quarter}`,
+    holing:+r.holing||0, short:+r.short||0, wedge:+r.wedge||0,
+    flight:+r.flight||0, plan:+r.plan||0
   }));
 
-  // Attendance (d, "group", one1)
+  // Attendance stays the same (already uses d + group + one1)
   const { data: attRows } = await supabase
     .from('attendance')
     .select('d, "group", one1')
@@ -71,7 +78,6 @@ async function loadGolferFromDB(userId) {
     sg, phys, ratings, attendance,
   };
 }
-
 
 
 /* ================= Deterministic demo data ================= */
