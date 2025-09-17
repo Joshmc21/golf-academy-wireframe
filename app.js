@@ -316,6 +316,10 @@ window.impersonate = async function (role) {
     state.golfers = [golfer];
     state.loggedGolferId = uid;
     state.currentGolfer = golfer;
+
+    // 👇 force the screen to redraw using the real data
+    renderGolferDashboard(golfer);   // or: navTo('dashboard');
+    return;
   }
 
   const nav = document.getElementById("roleNav");
@@ -336,11 +340,10 @@ window.impersonate = async function (role) {
     nav.appendChild(b);
   });
 
-  if (pages.length)
-    navTo(pages[0].toLowerCase().replace(/ /g, "-"));
-
+  if (pages.length) navTo(pages[0].toLowerCase().replace(/ /g, "-"));
   if (window.renderEggButton) window.renderEggButton();
-}
+};
+
 
 
   // Build the role nav (unchanged)
