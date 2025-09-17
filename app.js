@@ -10,6 +10,96 @@ window.testSupabase = async () => {
   else console.log("Supabase OK:", data);
 };
 
+// === Load the real golfer from Supabase (keeps the same shape the UI already uses) ===
+async function loadGolferFromDB(userId) {
+  // base info
+  const { data: golferRow, error: gErr } = await supabase
+    .from('golfers')
+    .select('hi, dob')
+    .eq('user_id', userId)
+    .single();
+  if (gErr) { console.error(gErr); throw gErr; }
+
+  // SG quarterly
+  const { data: sgRows, error: sgErr } = await supabase
+    .from('sg_quarter')
+    .select('year, quarter, sg_total, sg_tee, sg_app, sg_arg, sg_putt')
+    .eq('user_id', userId)
+    .order('year')
+    .order('quarter');
+  if (sgErr) console.error(sgErr);
+  const sg = (sgRows || []).map(r => ({
+    d: `${r.year}-Q${r.quarter}`,
+    total: Number(r.sg_total ?? 0),
+    tee: Number(r.sg_tee ?? 0),
+    approach: Number(r.sg_app ?? 0),
+    short: Number(r.sg_arg ?? 0),
+    putting: Number(r.sg_putt ?? 0),
+  }));
+
+  // Physical quarterly (chs, ball, cmj, bj, height, weight)
+  const { data: physRows, error: pErr } = await supabase
+    .from('phys_quarter')
+    .select('year, quarter, chs, ball, cmj, bj, height, weight')
+    .eq('user_id', userId)
+    .order('year')
+    .order('quarter');
+  if (pErr) console.error(pErr);
+  const phys = (physRows || []).map(r => ({
+    d: `${r.year}-Q${r.quarter}`,
+    chs: Number(r.chs ?? 0),
+    ball: Number(r.ball ?? 0),
+    cmj: Number(r.cmj ?? 0),
+    bj: Number(r.bj ?? 0),
+    height: Number(r.height ?? 0),
+    weight: Number(r.weight ?? 0),
+  }));
+
+  // Coach ratings quarterly (holing, short, wedge, flight, plan)
+  const { data: rateRows, error: rErr } = await supabase
+    .from('coach_ratings')
+    .select('year, quarter, holing, short, wedge, flight, plan')
+    .eq('user_id', userId)
+    .order('year')
+    .order('quarter');
+  if (rErr) console.error(rErr);
+  const ratings = (rateRows || []).map(r => ({
+    d: `${r.year}-Q${r.quarter}`,
+    holing: Number(r.holing ?? 0),
+    short: Number(r.short ?? 0),
+    wedge: Number(r.wedge ?? 0),
+    flight: Number(r.flight ?? 0),
+    plan: Number(r.plan ?? 0),
+  }));
+
+  // Attendance quarterly (stored as d, "group", one1)
+  const { data: attRows, error: aErr } = await supabase
+    .from('attendance')
+    .select('d, "group", one1')
+    .eq('user_id', userId)
+    .order('d');
+  if (aErr) console.error(aErr);
+  const attendance = (attRows || []).map(r => ({
+    d: r.d,
+    group: Number(r.group ?? 0),
+    one1: Number(r.one1 ?? 0),
+  }));
+
+  // Build the golfer object the UI expects
+  return {
+    id: userId,                 // important: use uid here
+    name: 'Demo Golfer',        // optional label
+    hi: Number(golferRow?.hi ?? 0),
+    dob: golferRow?.dob ?? null,
+    age: null,                  // not needed for golfer view
+    agePrecise: null,           // (coach tables compute these on mock data only)
+    sg,
+    phys,
+    ratings,
+    attendance,
+  };
+}
+
 
 /* ================= Deterministic demo data ================= */
 const RNG = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(123456);
@@ -242,23 +332,38 @@ const COMPARE_PRESETS = [
 ];
 
 /* ================= Navigation + Guards ================= */
-function impersonate(role){
+
+async function impersonate(role){
   state.role = role;
-  document.getElementById("whoami").textContent="Role: "+role;
-  const nav=document.getElementById("roleNav"); nav.innerHTML="";
-  let pages=[];
-  if(role==="golfer") pages=["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
-  if(role==="coach")  pages=["Compare","Correlations","Trends"];
-  if(role==="admin")  pages=["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
-  pages.forEach(p=>{
-    const b=document.createElement("button");
-    b.textContent=p;
-    b.onclick=()=>navTo(p.toLowerCase().replace(/ /g,"-"));
+  document.getElementById("whoami").textContent = "Role: " + role;
+
+  // When impersonating a golfer, load the real data from Supabase
+  if (role === "golfer") {
+    const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // your demo golfer UID
+    const golfer = await loadGolferFromDB(uid);
+    state.golfers = [golfer];
+    state.loggedGolferId = uid;     // make getLoggedGolfer() return this golfer
+    state.currentGolfer = golfer;
+  }
+
+  // Build the role nav (unchanged)
+  const nav = document.getElementById("roleNav"); nav.innerHTML = "";
+  let pages = [];
+  if (role === "golfer") pages = ["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
+  if (role === "coach")  pages = ["Compare","Correlations","Trends"];
+  if (role === "admin")  pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
+
+  pages.forEach(p => {
+    const b = document.createElement("button");
+    b.textContent = p;
+    b.onclick = () => navTo(p.toLowerCase().replace(/ /g,"-"));
     nav.appendChild(b);
   });
-  if(pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
+
+  if (pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
   if (window.renderEggButton) window.renderEggButton();
 }
+
 
 function navTo(view){
   const main=document.getElementById("mainContent");
