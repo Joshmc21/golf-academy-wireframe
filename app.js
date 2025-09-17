@@ -19,7 +19,7 @@ async function loadGolferFromDB(userId) {
     .select('hi, dob')
     .eq('user_id', userId)
     .single();
-  if (gErr) { console.error('golfers:', gErr); throw gErr; }
+  if (gErr) console.warn('golfers:', gErr); // don't throw; we can still render with defaults
 
   // SG (d, total, tee, approach, short, putting)
   const { data: sgRows } = await supabase
