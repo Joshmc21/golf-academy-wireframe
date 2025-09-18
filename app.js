@@ -12,72 +12,114 @@ window.testSupabase = async () => {
 
 // === Load the real golfer from Supabase (keeps the same shape the UI already uses) ===
 
+// Fetch the golfer row, then pull all metric tables by golfer_id
 async function loadGolferFromDB(userId) {
-  // base
-  const { data: golferRow, error: gErr } = await supabase
-    .from('golfers')
-    .select('hi, dob')
-    .eq('user_id', userId)
-    .single();
-  if (gErr) { console.error('golfers:', gErr); throw gErr; }
+  // 1) Find the golfer record
+  // try by user_id first, otherwise fall back to the most-recent golfer (demo has user_id = null)
+  let base = null;
 
-  // SG (year, quarter, total, tee, approach, short, putting)
+  // try: golfer linked to this user
+  {
+    const { data, error } = await supabase
+      .from('golfers')
+      .select('id, hi, dob')
+      .eq('user_id', userId)
+      .limit(1);
+    if (!error && data && data.length) base = data[0];
+  }
+
+  // fallback: latest golfer (covers your seeded demo row with user_id = null)
+  if (!base) {
+    const { data, error } = await supabase
+      .from('golfers')
+      .select('id, hi, dob')
+      .order('id', { ascending: false })
+      .limit(1);
+    if (!error && data && data.length) base = data[0];
+  }
+
+  if (!base) {
+    console.warn('No golfers found');
+    return null;
+  }
+
+  const golferId = base.id;
+
+  // 2) SG quarter (by golfer_id; columns: d, total, tee, approach, short, putting)
   const { data: sgRows } = await supabase
     .from('sg_quarter')
-    .select('year, quarter, total, tee, approach, short, putting')
-    .eq('user_id', userId)
-    .order('year')
-    .order('quarter');
+    .select('d, total, tee, approach, short, putting')
+    .eq('golfer_id', golferId)
+    .order('d');
+
   const sg = (sgRows || []).map(r => ({
-    label: `${r.year}-Q${r.quarter}`,
-    total:+r.total||0, tee:+r.tee||0,
-    approach:+r.approach||0, short:+r.short||0, putting:+r.putting||0
+    d: r.d,
+    total: +r.total || 0,
+    tee: +r.tee || 0,
+    approach: +r.approach || 0,
+    short: +r.short || 0,
+    putting: +r.putting || 0,
   }));
 
-  // Phys (year, quarter, chs, ball, cmj, bj, height, weight)
+  // 3) Physical quarter (d, chs, ball, cmj, bj, height, weight)
   const { data: physRows } = await supabase
     .from('phys_quarter')
-    .select('year, quarter, chs, ball, cmj, bj, height, weight')
-    .eq('user_id', userId)
-    .order('year')
-    .order('quarter');
+    .select('d, chs, ball, cmj, bj, height, weight')
+    .eq('golfer_id', golferId)
+    .order('d');
+
   const phys = (physRows || []).map(r => ({
-    label:`${r.year}-Q${r.quarter}`,
-    chs:+r.chs||0, ball:+r.ball||0, cmj:+r.cmj||0, bj:+r.bj||0,
-    height:+r.height||0, weight:+r.weight||0
+    d: r.d,
+    chs: +r.chs || 0,
+    ball: +r.ball || 0,
+    cmj: +r.cmj || 0,
+    bj: +r.bj || 0,
+    height: +r.height || 0,
+    weight: +r.weight || 0,
   }));
 
-  // Coach ratings (year, quarter, holing, short, wedge, flight, plan)
+  // 4) Coach ratings (d, holing, short, wedge, flight, plan)
   const { data: rateRows } = await supabase
     .from('coach_ratings')
-    .select('year, quarter, holing, short, wedge, flight, plan')
-    .eq('user_id', userId)
-    .order('year')
-    .order('quarter');
+    .select('d, holing, short, wedge, flight, plan')
+    .eq('golfer_id', golferId)
+    .order('d');
+
   const ratings = (rateRows || []).map(r => ({
-    label:`${r.year}-Q${r.quarter}`,
-    holing:+r.holing||0, short:+r.short||0, wedge:+r.wedge||0,
-    flight:+r.flight||0, plan:+r.plan||0
+    d: r.d,
+    holing: +r.holing || 0,
+    short: +r.short || 0,
+    wedge: +r.wedge || 0,
+    flight: +r.flight || 0,
+    plan: +r.plan || 0,
   }));
 
-  // Attendance stays the same (already uses d + group + one1)
+  // 5) Attendance (d, group_sess, one1) -> map to { d, group, one1 } for the UI
   const { data: attRows } = await supabase
     .from('attendance')
-    .select('d, "group", one1')
-    .eq('user_id', userId)
+    .select('d, group_sess, one1')
+    .eq('golfer_id', golferId)
     .order('d');
+
   const attendance = (attRows || []).map(r => ({
-    d:r.d, group:+r.group||0, one1:+r.one1||0
+    d: r.d,
+    group: +r.group_sess || 0,
+    one1: +r.one1 || 0,
   }));
 
+  // 6) Return the object the UI expects
   return {
-    id: userId,
+    id: golferId,                 // use golfer_id as the canonical id
     name: 'Demo Golfer',
-    hi: +(golferRow?.hi ?? 0),
-    dob: golferRow?.dob ?? null,
-    sg, phys, ratings, attendance,
+    hi: +(base.hi ?? 0),
+    dob: base.dob ?? null,
+    sg,
+    phys,
+    ratings,
+    attendance,
   };
 }
+
 
 
 /* ================= Deterministic demo data ================= */
