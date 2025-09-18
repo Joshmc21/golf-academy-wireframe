@@ -223,52 +223,26 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
       return null;
     }
 
-    // 2) Strokes Gained (per quarter) — schema autodetect w/ memo
-let sgRows = [];
-async function fetchSG_new() {
-  return await supabase
-    .from('sg_quarter')
-    .select('d, total, tee, approach, short, putting')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('id', { ascending: true });
-}
-async function fetchSG_legacy() {
-  // alias legacy cols to the new names so the rest of the app is consistent
-  return await supabase
-    .from('sg_quarter')
-    .select('d, total:sg_total, tee:sg_tee, approach:sg_app, short:sg_arg, putting:sg_putt')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('id', { ascending: true });
-}
+  
+// 2) SG (per quarter) — single query that works for both schemas
+const { data: sgRows, error: sgErr } = await supabase
+  .from('sg_quarter')
+  // select both the new names and the legacy names (sg_*)
+  .select('d, total, tee, approach, short, putting, sg_total, sg_tee, sg_approach, sg_short, sg_putting')
+  .eq('golfer_id', golferId)
+  .order('d', { ascending: true })
+  .order('id', { ascending: true }); // tie-breaker
 
-if (window.__sgSchema === 'new') {
-  const { data, error } = await fetchSG_new();
-  if (!error) { sgRows = data || []; }
-  else { const r = await fetchSG_legacy(); sgRows = r.data || []; window.__sgSchema = 'legacy'; }
-} else if (window.__sgSchema === 'legacy') {
-  const { data, error } = await fetchSG_legacy();
-  if (!error) { sgRows = data || []; }
-  else { const r = await fetchSG_new(); sgRows = r.data || []; window.__sgSchema = 'new'; }
-} else {
-  // first run: try legacy first (most likely in your DB), then new; remember the winner
-  let r = await fetchSG_legacy();
-  if (!r.error && r.data) { sgRows = r.data; window.__sgSchema = 'legacy'; }
-  else {
-    r = await fetchSG_new();
-    sgRows = r.data || [];
-    window.__sgSchema = (!r.error ? 'new' : null);
-  }
-}
+if (sgErr) console.warn('sg_quarter error:', sgErr);
 
+// map with fallback: prefer new columns, else use legacy sg_* columns
 const sg = (sgRows || []).map(r => ({
   d: r.d ?? '',
-  total: +r.total || 0,
-  tee: +r.tee || 0,
-  approach: +r.approach || 0,
-  short: +r.short || 0,
-  putting: +r.putting || 0,
+  total: +(r.total ?? r.sg_total ?? 0),
+  tee: +(r.tee ?? r.sg_tee ?? 0),
+  approach: +(r.approach ?? r.sg_approach ?? 0),
+  short: +(r.short ?? r.sg_short ?? 0),
+  putting: +(r.putting ?? r.sg_putting ?? 0),
 }));
 
 
