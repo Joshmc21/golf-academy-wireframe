@@ -74,12 +74,11 @@ window.loadGolferFromDB = async function (userId) {
 
   // 2) SG (per quarter) — robust to d OR year/quarter
   const { data: sgRows } = await supabase
-    .from('sg_quarter')
-    .select('*')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('year', { ascending: true })
-    .order('quarter', { ascending: true });
+  .from('sg_quarter')
+  .select('*')
+  .eq('golfer_id', golferId)
+  .order('d', { ascending: true })
+  .order('id', { ascending: true });
 
   const sg = (sgRows || []).map(r => ({
     d: r.d ?? qToStr(r.year, r.quarter) ?? '',
@@ -92,12 +91,11 @@ window.loadGolferFromDB = async function (userId) {
 
   // 3) Physical (per quarter) — robust to d OR year/quarter
   const { data: physRows } = await supabase
-    .from('phys_quarter')
-    .select('*')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('year', { ascending: true })
-    .order('quarter', { ascending: true });
+  .from('phys_quarter')
+  .select('*')
+  .eq('golfer_id', golferId)
+  .order('d', { ascending: true })
+  .order('id', { ascending: true });
 
   const phys = (physRows || []).map(r => ({
     d: r.d ?? qToStr(r.year, r.quarter) ?? '',
@@ -111,12 +109,11 @@ window.loadGolferFromDB = async function (userId) {
 
   // 4) Coach ratings — robust to d OR year/quarter
   const { data: rateRows } = await supabase
-    .from('coach_ratings')
-    .select('*')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('year', { ascending: true })
-    .order('quarter', { ascending: true });
+  .from('coach_ratings')
+  .select('*')
+  .eq('golfer_id', golferId)
+  .order('d', { ascending: true })
+  .order('id', { ascending: true });
 
   const ratings = (rateRows || []).map(r => ({
     d: r.d ?? qToStr(r.year, r.quarter) ?? '',
@@ -129,12 +126,11 @@ window.loadGolferFromDB = async function (userId) {
 
   // 5) Attendance — DB column is group_sess; map to UI "group"
   const { data: attRows } = await supabase
-    .from('attendance')
-    .select('*')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('year', { ascending: true })
-    .order('quarter', { ascending: true });
+  .from('attendance')
+  .select('*')
+  .eq('golfer_id', golferId)
+  .order('d', { ascending: true })
+  .order('id', { ascending: true });
 
   const attendance = (attRows || []).map(r => ({
     d: r.d ?? qToStr(r.year, r.quarter) ?? '',
