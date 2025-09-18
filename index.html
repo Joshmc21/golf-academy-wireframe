@@ -2,95 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>Golf Academy — Wireframe</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Golf Academy – Wireframe</title>
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="app.css" />
-
-  <!-- PWA manifest + theme -->
-  <link rel="manifest" href="/manifest.json?v=2" />
-  <meta name="theme-color" content="#FFBF00" />
-
-  <!-- iOS full-screen + icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
-  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-192.png" />
-  <link rel="icon" href="/icons/icon-192.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/app.css" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="logo">
-        <img src="" alt="ProPath Logo" />
-      </div>
-      <div id="whoami" class="muted">Not logged in</div>
+  <aside id="sidebar">
+    <img src="/icon-192.png" alt="ProPath Logo" style="width:32px;height:32px;margin:12px 0" />
+    <div id="whoami">Not logged in</div>
 
-      <div class="section">
-        <h3>Role Panels</h3>
-        <div class="nav">
-          <button onclick="impersonate('golfer')">Impersonate Golfer</button>
-          <button onclick="impersonate('coach')">Impersonate Coach</button>
-          <button onclick="impersonate('admin')">Impersonate Admin</button>
-        </div>
-      </div>
+    <h4>Role Panels</h4>
+    <button id="btnImpGolfer">Impersonate Golfer</button>
+    <button id="btnImpCoach">Impersonate Coach</button>
+    <button id="btnImpAdmin">Impersonate Admin</button>
 
-      <div class="section">
-        <h3>Navigate</h3>
-        <div id="roleNav" class="nav"></div>
-      </div>
-    </aside>
+    <h4>Navigate</h4>
+    <nav id="roleNav"></nav>
+  </aside>
 
-    <main class="main">
-      <div id="mainContent">
-        <h1>Welcome</h1>
-        <p>Select a role to begin exploring.</p>
-      </div>
-    </main>
-  </div>
+  <main id="main">
+    <h1 id="pageTitle">Welcome</h1>
+    <div id="page"></div>
+  </main>
 
-  <!-- Simple auth panel -->
-  <div id="authPanel" style="position:fixed; right:12px; top:12px; z-index:1000;">
-    <button id="btnLogout" style="display:none;">Logout</button>
-    <button id="btnShowLogin">Login</button>
-  </div>
+  <!-- Supabase client -->
+  <script src="https://esm.sh/@supabase/supabase-js@2.45.4"></script>
 
-  <!-- Login sheet -->
-  <div id="loginSheet" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:16px 20px; width:320px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-      <h3 style="margin:0 0 10px;">Sign in</h3>
-      <label>Email</label>
-      <input id="loginEmail" type="email" style="width:100%; margin:6px 0 10px;"/>
-      <label>Password</label>
-      <input id="loginPass" type="password" style="width:100%; margin:6px 0 16px;"/>
-      <div style="display:flex; gap:8px; justify-content:flex-end;">
-        <button id="btnCancelLogin">Cancel</button>
-        <button id="btnDoLogin">Sign in</button>
-      </div>
-      <p id="loginMsg" style="color:#c00; margin-top:10px;"></p>
-    </div>
-  </div>
+  <!-- App -->
+  <script src="/app.js"></script>
 
-  <!-- Chip & Putt Modal -->
-  <div id="eggModal" class="egg-modal" aria-hidden="true">
-    <div class="egg-modal__dialog" role="dialog" aria-modal="true" aria-label="Chip & Putt">
-      <button class="egg-close" id="eggClose" title="Close">×</button>
-      <canvas id="eggCanvas" width="720" height="420"></canvas>
-      <div class="egg-hud">
-        <span id="eggStrokes">Strokes: 0/3</span>
-        <span id="eggMsg"></span>
-        <button id="eggReset" class="btn">Reset</button>
-      </div>
-    </div>
-  </div>
+  <!-- Wire buttons after app boot -->
+  <script>
+    document.getElementById('btnImpGolfer').onclick = () => window.impersonate('golfer');
+    document.getElementById('btnImpCoach').onclick  = () => window.impersonate('coach');
+    document.getElementById('btnImpAdmin').onclick  = () => window.impersonate('admin');
 
-  <!-- Chip & Putt floating button -->
-  <button id="eggFab" class="egg-fab" type="button" aria-label="Open Chip & Putt">⛳️</button>
-
-  <!-- Scripts at the very end -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=dev8" defer></script>
+    // Default view:
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('pageTitle').textContent = 'Welcome';
+      document.getElementById('page').textContent = 'Select a role to begin exploring.';
+    });
+  </script>
 </body>
 </html>
