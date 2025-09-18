@@ -29,31 +29,20 @@ const state = {
 // Global golfer loader – uses golfer_id and works with demo data
 window.loadGolferFromDB = async function (userId) {
   // 1) find golfer row (linked to user_id, else fallback to latest demo row)
-  let base = null;
+  // 1) Always load golfer by numeric id
+const { data: base, error: baseErr } = await supabase
+  .from('golfers')
+  .select('id, hi, dob')
+  .eq('id', userId)        // ✅ now matches your schema
+  .single();
 
-  const linked = await supabase
-    .from('golfers')
-    .select('id, hi, dob')
-    .eq('id', userId)
-    .limit(1);
+if (baseErr || !base) {
+  console.warn('No golfer found', baseErr);
+  return null;
+}
 
-  if (!linked.error && linked.data && linked.data.length) {
-    base = linked.data[0];
-  } else {
-    const latest = await supabase
-      .from('golfers')
-      .select('id, hi, dob')
-      .order('id', { ascending: false })
-      .limit(1);
-    if (!latest.error && latest.data && latest.data.length) base = latest.data[0];
-  }
+const golferId = base.id;
 
-  if (!base) {
-    console.warn('No golfers found');
-    return null;
-  }
-
-  const golferId = base.id;
 
   // 2) SG (per quarter)
   const { data: sgRows } = await supabase
@@ -361,8 +350,21 @@ window.impersonate = async function (role) {
 
   // 2) Golfer flow: load from Supabase and show Dashboard
   if (role === "golfer") {
-    const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // demo golfer UID
-    const g = await window.loadGolferFromDB(uid);
+    // fetch the most-recent golfer row and use its numeric id
+const { data: latest, error: gErr } = await supabase
+  .from('golfers')
+  .select('id')
+  .order('id', { ascending: false })
+  .limit(1);
+
+const golferId = latest?.[0]?.id ?? null;
+if (!golferId) {
+  console.warn('No golfers found in DB');
+  return;
+}
+
+const g = await window.loadGolferFromDB(golferId);
+
     state.currentGolfer = g;
     state.golfers = [g];
     state.loggedGolferId = g?.id ?? null;
