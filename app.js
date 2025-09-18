@@ -21,146 +21,125 @@ const state = {
 };
 
 
-
-// === Load the real golfer from Supabase (keeps the same shape the UI already uses) ===
-
-// Fetch the golfer row, then pull all metric tables by golfer_id
-
-// Global golfer loader – uses golfer_id and works with demo data
+// === Load the real golfer from Supabase, by numeric golfer.id ===
 window.loadGolferFromDB = async function (userId) {
-  // Helper: detect UUID vs numeric golfer id
-  const looksLikeUUID = (v) => typeof v === 'string' && v.includes('-');
-
-  // 1) Resolve the base golfer row (by auth user UUID OR numeric golfer.id)
-  let base = null;
-  if (looksLikeUUID(userId)) {
-    // userId is an auth user UUID -> find linked golfer row
-    const linked = await supabase
-      .from('golfers')
-      .select('id, hi, dob')
-      .eq('user_id', userId)
-      .limit(1);
-
-    if (!linked.error && linked.data && linked.data.length) {
-      base = linked.data[0];
-    } else {
-      // fallback to latest demo golfer
-      const latest = await supabase
-        .from('golfers')
-        .select('id, hi, dob')
-        .order('id', { ascending: false })
-        .limit(1);
-      if (!latest.error && latest.data && latest.data.length) base = latest.data[0];
+  try {
+    // 0) Coerce to number for safety
+    const golferId = Number(userId);
+    if (!Number.isFinite(golferId)) {
+      console.warn('loadGolferFromDB: userId must be numeric golfer.id. Got:', userId);
+      return null;
     }
-  } else {
-    // userId is a numeric golfer.id (string or number)
-    const { data, error } = await supabase
+
+    // 1) Base golfer row (id, hi, dob)
+    const { data: base, error: baseErr } = await supabase
       .from('golfers')
       .select('id, hi, dob')
-      .eq('id', Number(userId))
+      .eq('id', golferId)
       .single();
-    if (!error && data) base = data;
-  }
 
-  if (!base) {
-    console.warn('No golfer found');
+    if (baseErr || !base) {
+      console.warn('No golfer found', baseErr);
+      return null;
+    }
+
+    // 2) SG (per quarter)
+    const { data: sgRows, error: sgErr } = await supabase
+      .from('sg_quarter')
+      .select('d, total, tee, approach, short, putting')
+      .eq('golfer_id', golferId)
+      .order('d', { ascending: true })
+      .order('id', { ascending: true }); // tie-break
+
+    if (sgErr) console.warn('sg_quarter error:', sgErr);
+    const sg = (sgRows || []).map(r => ({
+      d: r.d ?? '',
+      total: +r.total || 0,
+      tee: +r.tee || 0,
+      approach: +r.approach || 0,
+      short: +r.short || 0,
+      putting: +r.putting || 0,
+    }));
+
+    // 3) Physical (per quarter)
+    const { data: physRows, error: physErr } = await supabase
+      .from('phys_quarter')
+      .select('d, chs, ball, cmj, bj, height, weight')
+      .eq('golfer_id', golferId)
+      .order('d', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (physErr) console.warn('phys_quarter error:', physErr);
+    const phys = (physRows || []).map(r => ({
+      d: r.d ?? '',
+      chs: +r.chs || 0,
+      ball: +r.ball || 0,
+      cmj: +r.cmj || 0,
+      bj: +r.bj || 0,
+      height: +r.height || 0,
+      weight: +r.weight || 0,
+    }));
+
+    // 4) Coach ratings
+    const { data: rateRows, error: rateErr } = await supabase
+      .from('coach_ratings')
+      .select('d, holing, short, wedge, flight, plan')
+      .eq('golfer_id', golferId)
+      .order('d', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (rateErr) console.warn('coach_ratings error:', rateErr);
+    const ratings = (rateRows || []).map(r => ({
+      d: r.d ?? '',
+      holing: +r.holing || 0,
+      short: +r.short || 0,
+      wedge: +r.wedge || 0,
+      flight: +r.flight || 0,
+      plan: +r.plan || 0,
+    }));
+
+    // 5) Attendance
+    const { data: attRows, error: attErr } = await supabase
+      .from('attendance')
+      .select('d, group_sess, one1')
+      .eq('golfer_id', golferId)
+      .order('d', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (attErr) console.warn('attendance error:', attErr);
+    const attendance = (attRows || []).map(r => ({
+      d: r.d ?? '',
+      group: +(r.group_sess ?? 0),
+      one1: +r.one1 || 0,
+    }));
+
+    // derive age from dob for UI (optional)
+    const dobStr = base.dob ?? null;
+    let agePrecise = null, age = null;
+    if (dobStr) {
+      const dobDate = new Date(dobStr + 'T00:00:00Z');
+      agePrecise = (Date.now() - dobDate.getTime()) / (365.2425 * 24 * 3600 * 1000);
+      agePrecise = Math.round(agePrecise * 10) / 10;
+      age = Math.floor(agePrecise);
+    }
+
+    console.log('[loadGolferFromDB]',
+      { golferId, sg: sg.length, phys: phys.length, ratings: ratings.length, attendance: attendance.length });
+
+    return {
+      id: golferId,
+      name: 'Demo Golfer',
+      hi: +(base.hi ?? 0),
+      dob: base.dob ?? null,
+      age, agePrecise,
+      sg, phys, ratings, attendance,
+    };
+  } catch (e) {
+    console.error('loadGolferFromDB fatal:', e);
     return null;
   }
-
-  const golferId = base.id;
-
-  // Utility: turn (year, quarter) into "YYYY-Qn" when no `d`
-  const qToStr = (y, q) => (y && q ? `${y}-Q${q}` : null);
-
-  // 2) SG (per quarter) — robust to d OR year/quarter
-  const { data: sgRows } = await supabase
-  .from('sg_quarter')
-  .select('*')
-  .eq('golfer_id', golferId)
-  .order('d', { ascending: true })
-  .order('id', { ascending: true });
-
-  const sg = (sgRows || []).map(r => ({
-    d: r.d ?? qToStr(r.year, r.quarter) ?? '',
-    total: +r.total || 0,
-    tee: +r.tee || 0,
-    approach: +r.approach || 0,
-    short: +r.short || 0,
-    putting: +r.putting || 0,
-  }));
-
-  // 3) Physical (per quarter) — robust to d OR year/quarter
-  const { data: physRows } = await supabase
-  .from('phys_quarter')
-  .select('*')
-  .eq('golfer_id', golferId)
-  .order('d', { ascending: true })
-  .order('id', { ascending: true });
-
-  const phys = (physRows || []).map(r => ({
-    d: r.d ?? qToStr(r.year, r.quarter) ?? '',
-    chs: +r.chs || 0,
-    ball: +r.ball || 0,
-    cmj: +r.cmj || 0,
-    bj: +r.bj || 0,
-    height: +r.height || 0,
-    weight: +r.weight || 0,
-  }));
-
-  // 4) Coach ratings — robust to d OR year/quarter
-  const { data: rateRows } = await supabase
-  .from('coach_ratings')
-  .select('*')
-  .eq('golfer_id', golferId)
-  .order('d', { ascending: true })
-  .order('id', { ascending: true });
-
-  const ratings = (rateRows || []).map(r => ({
-    d: r.d ?? qToStr(r.year, r.quarter) ?? '',
-    holing: +r.holing || 0,
-    short: +r.short || 0,
-    wedge: +r.wedge || 0,
-    flight: +r.flight || 0,
-    plan: +r.plan || 0,
-  }));
-
-  // 5) Attendance — DB column is group_sess; map to UI "group"
-  const { data: attRows } = await supabase
-  .from('attendance')
-  .select('*')
-  .eq('golfer_id', golferId)
-  .order('d', { ascending: true })
-  .order('id', { ascending: true });
-
-  const attendance = (attRows || []).map(r => ({
-    d: r.d ?? qToStr(r.year, r.quarter) ?? '',
-    group: +(r.group_sess ?? r.group ?? 0),
-    one1: +r.one1 || 0,
-  }));
-
-  // Age derivation for UI
-  const dobStr = base.dob ?? null;
-  let agePrecise = null, age = null;
-  if (dobStr) {
-    const dobDate = new Date(dobStr + 'T00:00:00Z');
-    agePrecise = (Date.now() - dobDate.getTime()) / (365.2425 * 24 * 3600 * 1000);
-    agePrecise = Math.round(agePrecise * 10) / 10;
-    age = Math.floor(agePrecise);
-  }
-
-  return {
-    id: golferId,
-    name: 'Demo Golfer',
-    hi: +(base.hi ?? 0),
-    dob: base.dob ?? null,
-    age,
-    agePrecise,
-    sg,
-    phys,
-    ratings,
-    attendance,
-  };
 };
+
 
 
 
