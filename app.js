@@ -223,27 +223,58 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
       return null;
     }
 
-  
-// 2) SG (per quarter) — single query that works for both schemas
-const { data: sgRows, error: sgErr } = await supabase
-  .from('sg_quarter')
-  // select both the new names and the legacy names (sg_*)
-  .select('d, total, tee, approach, short, putting, sg_total, sg_tee, sg_approach, sg_short, sg_putting')
-  .eq('golfer_id', golferId)
-  .order('d', { ascending: true })
-  .order('id', { ascending: true }); // tie-breaker
+  // 2) SG (per quarter) — try new column names, fall back to legacy sg_* names
+let sg = [];
+{
+  // --- Pass A: new column names ---
+  let res = await supabase
+    .from('sg_quarter')
+    .select('d, total, tee, approach, short, putting')
+    .eq('golfer_id', golferId)
+    .order('d', { ascending: true })
+    .order('id', { ascending: true });
 
-if (sgErr) console.warn('sg_quarter error:', sgErr);
+  if (!res.error) {
+    const rows = res.data || [];
+    sg = rows.map(r => ({
+      d: r.d ?? '',
+      total: +r.total || 0,
+      tee: +r.tee || 0,
+      approach: +r.approach || 0,
+      short: +r.short || 0,
+      putting: +r.putting || 0,
+    }));
+  } else {
+    // If it looks like “column … does not exist”, retry with legacy names
+    const msg = (res.error.message || '').toLowerCase();
+    if (res.error.code === '42703' || msg.includes('does not exist')) {
+      // --- Pass B: legacy sg_* column names ---
+      const legacy = await supabase
+        .from('sg_quarter')
+        .select('d, sg_total, sg_tee, sg_approach, sg_short, sg_putting')
+        .eq('golfer_id', golferId)
+        .order('d', { ascending: true })
+        .order('id', { ascending: true });
 
-// map with fallback: prefer new columns, else use legacy sg_* columns
-const sg = (sgRows || []).map(r => ({
-  d: r.d ?? '',
-  total: +(r.total ?? r.sg_total ?? 0),
-  tee: +(r.tee ?? r.sg_tee ?? 0),
-  approach: +(r.approach ?? r.sg_approach ?? 0),
-  short: +(r.short ?? r.sg_short ?? 0),
-  putting: +(r.putting ?? r.sg_putting ?? 0),
-}));
+      if (!legacy.error) {
+        const rows = legacy.data || [];
+        sg = rows.map(r => ({
+          d: r.d ?? '',
+          total: +(r.sg_total ?? 0),
+          tee: +(r.sg_tee ?? 0),
+          approach: +(r.sg_approach ?? 0),
+          short: +(r.sg_short ?? 0),
+          putting: +(r.sg_putting ?? 0),
+        }));
+      } else {
+        console.warn('sg_quarter legacy error:', legacy.error);
+      }
+    } else {
+      console.warn('sg_quarter error:', res.error);
+    }
+  }
+}
+
 
 
     // 3) Physical (per quarter)
