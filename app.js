@@ -1,3 +1,83 @@
+// --- helpers used by Compare view ---
+function calcAgeFromDOB(dobStr) {
+  if (!dobStr) return null;
+  const d = new Date(dobStr + "T00:00:00Z");
+  if (Number.isNaN(d.getTime())) return null;
+  const years = (Date.now() - d.getTime()) / (365.2425 * 24 * 3600 * 1000);
+  return Math.floor(years);
+}
+
+async function fetchGolfersForCompare() {
+  const { data: golfers, error: golfersErr } = await supabase
+    .from('golfers')
+    .select('id, dob, hi, created_at')
+    .order('id', { ascending: true });
+
+  if (golfersErr || !golfers || golfers.length === 0) return [];
+
+  const ids = golfers.map(g => g.id);
+
+  // Try legacy first (since your project used it), then new; remember which worked
+  window.__sgSchema = window.__sgSchema || null;
+
+  async function fetchSG_new() {
+    return await supabase
+      .from('sg_quarter')
+      .select('golfer_id, total, id')
+      .in('golfer_id', ids)
+      .order('id', { ascending: true });
+  }
+  async function fetchSG_legacy() {
+    return await supabase
+      .from('sg_quarter')
+      .select('golfer_id, total:sg_total, id')
+      .in('golfer_id', ids)
+      .order('id', { ascending: true });
+  }
+
+  let sgRows = [];
+  if (window.__sgSchema === 'new') {
+    const { data, error } = await fetchSG_new();
+    if (!error) { sgRows = data || []; }
+    else { const r = await fetchSG_legacy(); sgRows = r.data || []; window.__sgSchema = 'legacy'; }
+  } else if (window.__sgSchema === 'legacy') {
+    const { data, error } = await fetchSG_legacy();
+    if (!error) { sgRows = data || []; }
+    else { const r = await fetchSG_new(); sgRows = r.data || []; window.__sgSchema = 'new'; }
+  } else {
+    // first run: try legacy, then new
+    let r = await fetchSG_legacy();
+    if (!r.error && r.data) { sgRows = r.data; window.__sgSchema = 'legacy'; }
+    else { r = await fetchSG_new(); sgRows = r.data || []; window.__sgSchema = (!r.error ? 'new' : null); }
+  }
+
+  const sgMap = new Map();
+  (sgRows || []).forEach(r => {
+    const k = r.golfer_id;
+    if (!sgMap.has(k)) sgMap.set(k, []);
+    sgMap.get(k).push(+r.total || 0);
+  });
+
+  const avgLast4 = arr => {
+    if (!arr || arr.length === 0) return 0;
+    const last4 = arr.slice(-4);
+    const sum = last4.reduce((a, b) => a + b, 0);
+    return Math.round((sum / last4.length) * 10) / 10;
+  };
+
+  return golfers.map((g, i) => ({
+    idx: i + 1,
+    id: g.id,
+    name: 'Demo Golfer',
+    dob: g.dob || null,
+    age: calcAgeFromDOB(g.dob),
+    hi: +(g.hi ?? 0),
+    sgTotal: avgLast4(sgMap.get(g.id)),
+  }));
+}
+
+
+
 // Supabase: simple init
 const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
@@ -467,8 +547,6 @@ if (!session) {
     // Re-render Easter Egg button after navigation
   if (window.renderEggButton) window.renderEggButton();
 
-    // Keep the Chip & Putt FAB after any view render
-  if (window.renderEggButton) window.renderEggButton();
 }
 
 // === Impersonation / role switcher ===
@@ -1042,6 +1120,49 @@ function renderAdminCompliance(main){
   `;
 }
 
+/* ======= Coach/Admin: Compare ======= */
+async function renderCompare(main) {
+  main.innerHTML = "<h2>Compare Golfers</h2><div id='compareTable'></div>";
+
+  // Uses the helper we made earlier
+  const golfers = await fetchGolfersForCompare();
+
+  if (!golfers.length) {
+    document.getElementById("compareTable").textContent = "No golfers found.";
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.border = "1";
+  table.cellPadding = "6";
+  table.style.borderCollapse = "collapse";
+
+  const header = document.createElement("tr");
+  ["#", "Name", "DOB", "Age", "HI", "SG Total (last 4)"].forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    th.style.cursor = "pointer";
+    header.appendChild(th);
+  });
+  table.appendChild(header);
+
+  golfers.forEach(g => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${g.idx}</td>
+      <td>${g.name}</td>
+      <td>${g.dob || "—"}</td>
+      <td>${g.age ?? "—"}</td>
+      <td>${g.hi?.toFixed ? g.hi.toFixed(1) : g.hi}</td>
+      <td>${g.sgTotal?.toFixed ? g.sgTotal.toFixed(1) : g.sgTotal}</td>
+    `;
+    table.appendChild(tr);
+  });
+
+  document.getElementById("compareTable").appendChild(table);
+}
+
+
 /* ======= Coach/Admin: Correlations ======= */
 function renderCorrelations(main){
   const golfers=state.golfers;
@@ -1207,6 +1328,7 @@ function renderTrends(main){
     `;
   }
 
+  
   function smallMultiples(){
     // grid of mini sparklines, one per golfer
     const cards = series.map(s=>`
