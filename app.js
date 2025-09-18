@@ -10,6 +10,110 @@ window.testSupabase = async () => {
   else console.log("Supabase OK:", data);
 };
 
+// === Live loader: fetch golfer + metrics by golfer_id (works with your seeded demo) ===
+window.loadGolferFromDB = async function (userId) {
+  // 1) get a golfer row (linked to the user if present; otherwise latest demo row with user_id = null)
+  let base = null;
+
+  const linked = await supabase
+    .from('golfers')
+    .select('id, hi, dob')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (!linked.error && linked.data && linked.data.length) {
+    base = linked.data[0];
+  } else {
+    const latest = await supabase
+      .from('golfers')
+      .select('id, hi, dob')
+      .order('id', { ascending: false })
+      .limit(1);
+    if (!latest.error && latest.data && latest.data.length) base = latest.data[0];
+  }
+
+  if (!base) {
+    console.warn('No golfers found');
+    return null;
+  }
+
+  const golferId = base.id;
+
+  // 2) SG per quarter (d, total, tee, approach, short, putting)
+  const { data: sgRows } = await supabase
+    .from('sg_quarter')
+    .select('d, total, tee, approach, short, putting')
+    .eq('golfer_id', golferId)
+    .order('d');
+
+  const sg = (sgRows || []).map(r => ({
+    d: r.d,
+    total: +r.total || 0,
+    tee: +r.tee || 0,
+    approach: +r.approach || 0,
+    short: +r.short || 0,
+    putting: +r.putting || 0,
+  }));
+
+  // 3) Physical per quarter (d, chs, ball, cmj, bj, height, weight)
+  const { data: physRows } = await supabase
+    .from('phys_quarter')
+    .select('d, chs, ball, cmj, bj, height, weight')
+    .eq('golfer_id', golferId)
+    .order('d');
+
+  const phys = (physRows || []).map(r => ({
+    d: r.d,
+    chs: +r.chs || 0,
+    ball: +r.ball || 0,
+    cmj: +r.cmj || 0,
+    bj: +r.bj || 0,
+    height: +r.height || 0,
+    weight: +r.weight || 0,
+  }));
+
+  // 4) Coach ratings per quarter (d, holing, short, wedge, flight, plan)
+  const { data: rateRows } = await supabase
+    .from('coach_ratings')
+    .select('d, holing, short, wedge, flight, plan')
+    .eq('golfer_id', golferId)
+    .order('d');
+
+  const ratings = (rateRows || []).map(r => ({
+    d: r.d,
+    holing: +r.holing || 0,
+    short: +r.short || 0,
+    wedge: +r.wedge || 0,
+    flight: +r.flight || 0,
+    plan: +r.plan || 0,
+  }));
+
+  // 5) Attendance per quarter (d, group_sess, one1) → map to {group} for UI
+  const { data: attRows } = await supabase
+    .from('attendance')
+    .select('d, group_sess, one1')
+    .eq('golfer_id', golferId)
+    .order('d');
+
+  const attendance = (attRows || []).map(r => ({
+    d: r.d,
+    group: +r.group_sess || 0,
+    one1: +r.one1 || 0,
+  }));
+
+  return {
+    id: golferId,
+    name: 'Demo Golfer',
+    hi: +(base.hi ?? 0),
+    dob: base.dob ?? null,
+    sg,
+    phys,
+    ratings,
+    attendance,
+  };
+};
+
+
 // === Load the real golfer from Supabase (keeps the same shape the UI already uses) ===
 
 // Fetch the golfer row, then pull all metric tables by golfer_id
@@ -351,7 +455,7 @@ const COMPARE_PRESETS = [
 
 /* ================= Navigation + Guards ================= */
 
-// Global impersonate – calls loader + forces dashboard render
+// Global impersonate – loads from Supabase for golfer and forces a UI render
 window.impersonate = async function (role) {
   state.role = role;
   document.getElementById("whoami").textContent = "Role: " + role;
@@ -361,10 +465,11 @@ window.impersonate = async function (role) {
     const g = await window.loadGolferFromDB(uid);
     state.currentGolfer = g;
     state.golfers = [g];
-    renderGolferDashboard(g);   // refresh UI with live data
-    return;
+    renderGolferDashboard(g);   // update UI with live data
+    return; // golfer flow done
   }
 
+  // coach/admin nav stays the same
   const nav = document.getElementById("roleNav");
   nav.innerHTML = "";
 
@@ -386,6 +491,7 @@ window.impersonate = async function (role) {
 
   if (window.renderEggButton) window.renderEggButton();
 };
+
 
 
 
