@@ -20,6 +20,9 @@ const state = {
   compare: { columns: ["DOB","Age","HI","SG Total"], dateWindow: "All", sortKey: "sg_total", sortDir: -1 },
 };
 
+// remember which sg_quarter schema worked: 'new' or 'legacy'
+window.__sgSchema = window.__sgSchema || null;
+
 
 // === Load golfer + quarterly data from Supabase (schema: d/group_sess/golfer_id) ===
 window.loadGolferFromDB = async function loadGolferFromDB(userId) {
@@ -53,42 +56,46 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
       return null;
     }
 
-    // 2) Strokes Gained (per quarter)
-    // 2) Strokes Gained (per quarter) — try new names, fallback to legacy
+    // 2) Strokes Gained (per quarter) — schema autodetect w/ memo
 let sgRows = [];
-{
-  // Attempt with new column names
-  const { data, error } = await supabase
+async function fetchSG_new() {
+  return await supabase
     .from('sg_quarter')
     .select('d, total, tee, approach, short, putting')
     .eq('golfer_id', golferId)
     .order('d', { ascending: true })
     .order('id', { ascending: true });
+}
+async function fetchSG_legacy() {
+  // alias legacy cols to the new names so the rest of the app is consistent
+  return await supabase
+    .from('sg_quarter')
+    .select('d, total:sg_total, tee:sg_tee, approach:sg_app, short:sg_arg, putting:sg_putt')
+    .eq('golfer_id', golferId)
+    .order('d', { ascending: true })
+    .order('id', { ascending: true });
+}
 
-  if (!error) {
-    sgRows = data || [];
-  } else {
-    console.warn('sg_quarter (new cols) error, retrying legacy:', error);
-
-    // Fallback: legacy column names -> alias them to the new field names
-    const { data: legacyData, error: legacyErr } = await supabase
-      .from('sg_quarter')
-      // alias:  total<-sg_total, tee<-sg_tee, approach<-sg_app, short<-sg_arg, putting<-sg_putt
-      .select('d, total:sg_total, tee:sg_tee, approach:sg_app, short:sg_arg, putting:sg_putt')
-      .eq('golfer_id', golferId)
-      .order('d', { ascending: true })
-      .order('id', { ascending: true });
-
-    if (legacyErr) {
-      console.warn('sg_quarter (legacy cols) error:', legacyErr);
-      sgRows = [];
-    } else {
-      sgRows = legacyData || [];
-    }
+if (window.__sgSchema === 'new') {
+  const { data, error } = await fetchSG_new();
+  if (!error) { sgRows = data || []; }
+  else { const r = await fetchSG_legacy(); sgRows = r.data || []; window.__sgSchema = 'legacy'; }
+} else if (window.__sgSchema === 'legacy') {
+  const { data, error } = await fetchSG_legacy();
+  if (!error) { sgRows = data || []; }
+  else { const r = await fetchSG_new(); sgRows = r.data || []; window.__sgSchema = 'new'; }
+} else {
+  // first run: try legacy first (most likely in your DB), then new; remember the winner
+  let r = await fetchSG_legacy();
+  if (!r.error && r.data) { sgRows = r.data; window.__sgSchema = 'legacy'; }
+  else {
+    r = await fetchSG_new();
+    sgRows = r.data || [];
+    window.__sgSchema = (!r.error ? 'new' : null);
   }
 }
 
-const sg = sgRows.map(r => ({
+const sg = (sgRows || []).map(r => ({
   d: r.d ?? '',
   total: +r.total || 0,
   tee: +r.tee || 0,
