@@ -46,83 +46,83 @@ window.loadGolferFromDB = async function (userId) {
       return null;
     }
 
-    // 2) SG (per quarter) — ask for year/quarter too and sort by them
-    const { data: sgRows, error: sgErr } = await supabase
-      .from('sg_quarter')
-      .select('d, year, quarter, total, tee, approach, short, putting')
-      .eq('golfer_id', golferId)
-      .order('d', { ascending: true })
-      .order('year', { ascending: true })
-      .order('quarter', { ascending: true })
-      .order('id', { ascending: true }); // tie-break
+    // 2) SG (per quarter)
+const { data: sgRows, error: sgErr } = await supabase
+  .from('sg_quarter')
+  .select('year, quarter, total, tee, approach, short, putting')
+  .eq('golfer_id', golferId)
+  .order('year', { ascending: true })
+  .order('quarter', { ascending: true })
+  .order('id', { ascending: true }); // tie-break
 
-    if (sgErr) console.warn('sg_quarter error:', sgErr);
-    const sg = (sgRows || []).map(r => ({
-      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
-      total: +r.total || 0,
-      tee: +r.tee || 0,
-      approach: +r.approach || 0,
-      short: +r.short || 0,
-      putting: +r.putting || 0,
-    }));
+if (sgErr) console.warn('sg_quarter error:', sgErr);
+const sg = (sgRows || []).map(r => ({
+  d: qToStrLocal(r.year, r.quarter),
+  total: +r.total || 0,
+  tee: +r.tee || 0,
+  approach: +r.approach || 0,
+  short: +r.short || 0,
+  putting: +r.putting || 0,
+}));
+
 
     // 3) Physical (per quarter)
-    const { data: physRows, error: physErr } = await supabase
-      .from('phys_quarter')
-      .select('d, year, quarter, chs, ball, cmj, bj, height, weight')
-      .eq('golfer_id', golferId)
-      .order('d', { ascending: true })
-      .order('year', { ascending: true })
-      .order('quarter', { ascending: true })
-      .order('id', { ascending: true });
+const { data: physRows, error: physErr } = await supabase
+  .from('phys_quarter')
+  .select('year, quarter, chs, ball, cmj, bj, height, weight')
+  .eq('golfer_id', golferId)
+  .order('year', { ascending: true })
+  .order('quarter', { ascending: true })
+  .order('id', { ascending: true });
 
-    if (physErr) console.warn('phys_quarter error:', physErr);
-    const phys = (physRows || []).map(r => ({
-      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
-      chs: +r.chs || 0,
-      ball: +r.ball || 0,
-      cmj: +r.cmj || 0,
-      bj: +r.bj || 0,
-      height: +r.height || 0,
-      weight: +r.weight || 0,
-    }));
+if (physErr) console.warn('phys_quarter error:', physErr);
+const phys = (physRows || []).map(r => ({
+  d: qToStrLocal(r.year, r.quarter),
+  chs: +r.chs || 0,
+  ball: +r.ball || 0,
+  cmj: +r.cmj || 0,
+  bj: +r.bj || 0,
+  height: +r.height || 0,
+  weight: +r.weight || 0,
+}));
 
-    // 4) Coach ratings (per quarter)
-    const { data: rateRows, error: rateErr } = await supabase
-      .from('coach_ratings')
-      .select('d, year, quarter, holing, short, wedge, flight, plan')
-      .eq('golfer_id', golferId)
-      .order('d', { ascending: true })
-      .order('year', { ascending: true })
-      .order('quarter', { ascending: true })
-      .order('id', { ascending: true });
 
-    if (rateErr) console.warn('coach_ratings error:', rateErr);
-    const ratings = (rateRows || []).map(r => ({
-      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
-      holing: +r.holing || 0,
-      short: +r.short || 0,
-      wedge: +r.wedge || 0,
-      flight: +r.flight || 0,
-      plan: +r.plan || 0,
-    }));
+    // 4) Coach ratings
+const { data: rateRows, error: rateErr } = await supabase
+  .from('coach_ratings')
+  .select('year, quarter, holing, short, wedge, flight, plan')
+  .eq('golfer_id', golferId)
+  .order('year', { ascending: true })
+  .order('quarter', { ascending: true })
+  .order('id', { ascending: true });
 
-    // 5) Attendance (per quarter)
-    const { data: attRows, error: attErr } = await supabase
-      .from('attendance')
-      .select('d, year, quarter, group_sess, one1')
-      .eq('golfer_id', golferId)
-      .order('d', { ascending: true })
-      .order('year', { ascending: true })
-      .order('quarter', { ascending: true })
-      .order('id', { ascending: true });
+if (rateErr) console.warn('coach_ratings error:', rateErr);
+const ratings = (rateRows || []).map(r => ({
+  d: qToStrLocal(r.year, r.quarter),
+  holing: +r.holing || 0,
+  short: +r.short || 0,
+  wedge: +r.wedge || 0,
+  flight: +r.flight || 0,
+  plan: +r.plan || 0,
+}));
 
-    if (attErr) console.warn('attendance error:', attErr);
-    const attendance = (attRows || []).map(r => ({
-      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
-      group: +(r.group_sess ?? r.group ?? 0),
-      one1: +r.one1 || 0,
-    }));
+
+    // 5) Attendance
+const { data: attRows, error: attErr } = await supabase
+  .from('attendance')
+  .select('year, quarter, group_sess, one1')
+  .eq('golfer_id', golferId)
+  .order('year', { ascending: true })
+  .order('quarter', { ascending: true })
+  .order('id', { ascending: true });
+
+if (attErr) console.warn('attendance error:', attErr);
+const attendance = (attRows || []).map(r => ({
+  d: qToStrLocal(r.year, r.quarter),
+  group: +(r.group_sess ?? 0),
+  one1: +r.one1 || 0,
+}));
+
 
     // derive age from dob for UI (optional)
     const dobStr = base.dob ?? null;
