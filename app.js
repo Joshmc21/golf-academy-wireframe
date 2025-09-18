@@ -171,7 +171,20 @@ const state = {
 };
 
 // --- Quarter labels used across views (string 'YYYY-Q#' or 'YYYY-MM' based) ---
-const QUARTERS = ["2024-10","2025-01","2025-04","2025-07"]; // tweak as you like
+// --- Quarter labels used across views ---
+// Default (used only until real data loads), then we overwrite from SG dates
+let QUARTERS = ["2024-10","2025-01","2025-04","2025-07"];
+window.QUARTERS = QUARTERS;
+
+// Helper to set quarters from loaded golfer data
+window.setQuartersFrom = function setQuartersFrom(g) {
+  const d = (g?.sg || []).map(r => r.d);
+  if (d.length) {
+    QUARTERS = d;
+    window.QUARTERS = d;
+  }
+};
+
 
 
 // remember which sg_quarter schema worked: 'new' or 'legacy'
@@ -580,7 +593,7 @@ const g = await window.loadGolferFromDB(golferId);
     state.currentGolfer = g;
     state.golfers = [g];
     state.loggedGolferId = g?.id ?? null;
-    window.QUARTERS = (g?.sg || []).map(r => r.d); // used by charts/helpers
+    window.setQuartersFrom(g);
     navTo("dashboard"); // render Golfer Dashboard
     return; // done
   }
