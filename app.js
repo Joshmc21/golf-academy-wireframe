@@ -21,10 +21,13 @@ const state = {
 };
 
 
-// === Load the real golfer from Supabase, by numeric golfer.id ===
 window.loadGolferFromDB = async function (userId) {
   try {
-    // 0) Coerce to number for safety
+    // Small helper so UI still gets a 'd' string even if table only has year/quarter.
+    const qToStrLocal = (y, q) =>
+      (Number.isFinite(+y) && Number.isFinite(+q)) ? `${y}-${String(q).padStart(2, '0')}` : '';
+
+    // 0) Coerce to number for safety (your app passes golfer.id, not auth uid)
     const golferId = Number(userId);
     if (!Number.isFinite(golferId)) {
       console.warn('loadGolferFromDB: userId must be numeric golfer.id. Got:', userId);
@@ -43,17 +46,19 @@ window.loadGolferFromDB = async function (userId) {
       return null;
     }
 
-    // 2) SG (per quarter)
+    // 2) SG (per quarter) — ask for year/quarter too and sort by them
     const { data: sgRows, error: sgErr } = await supabase
       .from('sg_quarter')
-      .select('d, total, tee, approach, short, putting')
+      .select('d, year, quarter, total, tee, approach, short, putting')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
+      .order('year', { ascending: true })
+      .order('quarter', { ascending: true })
       .order('id', { ascending: true }); // tie-break
 
     if (sgErr) console.warn('sg_quarter error:', sgErr);
     const sg = (sgRows || []).map(r => ({
-      d: r.d ?? '',
+      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
       total: +r.total || 0,
       tee: +r.tee || 0,
       approach: +r.approach || 0,
@@ -64,14 +69,16 @@ window.loadGolferFromDB = async function (userId) {
     // 3) Physical (per quarter)
     const { data: physRows, error: physErr } = await supabase
       .from('phys_quarter')
-      .select('d, chs, ball, cmj, bj, height, weight')
+      .select('d, year, quarter, chs, ball, cmj, bj, height, weight')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
+      .order('year', { ascending: true })
+      .order('quarter', { ascending: true })
       .order('id', { ascending: true });
 
     if (physErr) console.warn('phys_quarter error:', physErr);
     const phys = (physRows || []).map(r => ({
-      d: r.d ?? '',
+      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
       chs: +r.chs || 0,
       ball: +r.ball || 0,
       cmj: +r.cmj || 0,
@@ -80,17 +87,19 @@ window.loadGolferFromDB = async function (userId) {
       weight: +r.weight || 0,
     }));
 
-    // 4) Coach ratings
+    // 4) Coach ratings (per quarter)
     const { data: rateRows, error: rateErr } = await supabase
       .from('coach_ratings')
-      .select('d, holing, short, wedge, flight, plan')
+      .select('d, year, quarter, holing, short, wedge, flight, plan')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
+      .order('year', { ascending: true })
+      .order('quarter', { ascending: true })
       .order('id', { ascending: true });
 
     if (rateErr) console.warn('coach_ratings error:', rateErr);
     const ratings = (rateRows || []).map(r => ({
-      d: r.d ?? '',
+      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
       holing: +r.holing || 0,
       short: +r.short || 0,
       wedge: +r.wedge || 0,
@@ -98,18 +107,20 @@ window.loadGolferFromDB = async function (userId) {
       plan: +r.plan || 0,
     }));
 
-    // 5) Attendance
+    // 5) Attendance (per quarter)
     const { data: attRows, error: attErr } = await supabase
       .from('attendance')
-      .select('d, group_sess, one1')
+      .select('d, year, quarter, group_sess, one1')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
+      .order('year', { ascending: true })
+      .order('quarter', { ascending: true })
       .order('id', { ascending: true });
 
     if (attErr) console.warn('attendance error:', attErr);
     const attendance = (attRows || []).map(r => ({
-      d: r.d ?? '',
-      group: +(r.group_sess ?? 0),
+      d: r.d ?? qToStrLocal(r.year, r.quarter) ?? '',
+      group: +(r.group_sess ?? r.group ?? 0),
       one1: +r.one1 || 0,
     }));
 
@@ -123,22 +134,32 @@ window.loadGolferFromDB = async function (userId) {
       age = Math.floor(agePrecise);
     }
 
-    console.log('[loadGolferFromDB]',
-      { golferId, sg: sg.length, phys: phys.length, ratings: ratings.length, attendance: attendance.length });
+    console.log('[loadGolferFromDB]', {
+      golferId,
+      sg: sg.length,
+      phys: phys.length,
+      ratings: ratings.length,
+      attendance: attendance.length
+    });
 
     return {
       id: golferId,
       name: 'Demo Golfer',
       hi: +(base.hi ?? 0),
       dob: base.dob ?? null,
-      age, agePrecise,
-      sg, phys, ratings, attendance,
+      age,
+      agePrecise,
+      sg,
+      phys,
+      ratings,
+      attendance,
     };
   } catch (e) {
     console.error('loadGolferFromDB fatal:', e);
     return null;
   }
 };
+
 
 
 
