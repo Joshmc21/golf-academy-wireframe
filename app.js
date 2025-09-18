@@ -170,6 +170,10 @@ const state = {
   compare: { columns: ["DOB","Age","HI","SG Total"], dateWindow: "All", sortKey: "sg_total", sortDir: -1 },
 };
 
+// --- Quarter labels used across views (string 'YYYY-Q#' or 'YYYY-MM' based) ---
+const QUARTERS = ["2024-10","2025-01","2025-04","2025-07"]; // tweak as you like
+
+
 // remember which sg_quarter schema worked: 'new' or 'legacy'
 window.__sgSchema = window.__sgSchema || null;
 
