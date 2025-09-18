@@ -140,6 +140,7 @@ return {
   attendance,
 };
 
+};
 
 
 /* ================= Helpers ================= */
@@ -307,44 +308,6 @@ const COMPARE_PRESETS = [
 
 /* ================= Navigation + Guards ================= */
 
-// Global impersonate – loads from Supabase for golfer and forces a UI render
-window.impersonate = async function (role) {
-  state.role = role;
-  document.getElementById("whoami").textContent = "Role: " + role;
-
-  if (role === "golfer") {
-    const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // demo golfer UID
-    const g = await window.loadGolferFromDB(uid);
-state.currentGolfer = g;
-state.golfers = [g];
-state.loggedGolferId = g.id;                    // so getLoggedGolfer() finds the right one
-window.QUARTERS = g.sg.map(r => r.d);           // provide the quarters array used by helpers
-navTo('dashboard');                              // ✅ correct: lets the nav render the dashboard
-return; // golfer flow done
-  }
-
-  // coach/admin nav stays the same
-  const nav = document.getElementById("roleNav");
-  nav.innerHTML = "";
-
-  let pages = [];
-  if (role === "coach")
-    pages = ["Compare","Correlations","Trends"];
-  if (role === "admin")
-    pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
-
-  pages.forEach(p => {
-    const b = document.createElement("button");
-    b.textContent = p;
-    b.onclick = () => navTo(p.toLowerCase().replace(/ /g, "-"));
-    nav.appendChild(b);
-  });
-
-  if (pages.length)
-    navTo(pages[0].toLowerCase().replace(/ /g, "-"));
-
-  if (window.renderEggButton) window.renderEggButton();
-};
 
 
 
@@ -388,6 +351,48 @@ function navTo(view){
     // Keep the Chip & Putt FAB after any view render
   if (window.renderEggButton) window.renderEggButton();
 }
+
+// === Impersonation / role switcher ===
+window.impersonate = async function (role) {
+  // 1) record role + small UI hint
+  state.role = role;
+  const who = document.getElementById("whoami");
+  if (who) who.textContent = "Role: " + role;
+
+  // 2) Golfer flow: load from Supabase and show Dashboard
+  if (role === "golfer") {
+    const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // demo golfer UID
+    const g = await window.loadGolferFromDB(uid);
+    state.currentGolfer = g;
+    state.golfers = [g];
+    state.loggedGolferId = g?.id ?? null;
+    window.QUARTERS = (g?.sg || []).map(r => r.d); // used by charts/helpers
+    navTo("dashboard"); // render Golfer Dashboard
+    return; // done
+  }
+
+  // 3) Coach/Admin: build role nav and go to first page
+  const nav = document.getElementById("roleNav");
+  if (nav) {
+    nav.innerHTML = "";
+    let pages = [];
+    if (role === "coach") pages = ["Compare","Correlations","Trends"];
+    if (role === "admin")
+      pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
+
+    pages.forEach(p => {
+      const b = document.createElement("button");
+      b.textContent = p;
+      b.onclick = () => navTo(p.toLowerCase().replace(/ /g, "-"));
+      nav.appendChild(b);
+    });
+
+    if (pages.length) navTo(pages[0].toLowerCase().replace(/ /g, "-"));
+  }
+
+  if (window.renderEggButton) window.renderEggButton();
+};
+
 
 /* ======== Golfer views (same as before, wrapped in functions) ======== */
 function renderGolferDashboard(main){
@@ -1685,3 +1690,6 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(console.error);
   });
 }
+
+window.navTo = window.navTo || navTo;
+window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
