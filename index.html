@@ -89,8 +89,11 @@
   <!-- Chip & Putt floating button -->
   <button id="eggFab" class="egg-fab" type="button" aria-label="Open Chip & Putt">⛳️</button>
 
-  <!-- Scripts at the very end -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=dev8" defer></script>
+  <!-- Supabase UMD (NOT the ESM build) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
+<!-- Your app (bump the v=) -->
+<script src="app.js?v=dev12" defer></script>
 </body>
 </html>
+
