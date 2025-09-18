@@ -10,108 +10,16 @@ window.testSupabase = async () => {
   else console.log("Supabase OK:", data);
 };
 
-// === Live loader: fetch golfer + metrics by golfer_id (works with your seeded demo) ===
-window.loadGolferFromDB = async function (userId) {
-  // 1) get a golfer row (linked to the user if present; otherwise latest demo row with user_id = null)
-  let base = null;
-
-  const linked = await supabase
-    .from('golfers')
-    .select('id, hi, dob')
-    .eq('user_id', userId)
-    .limit(1);
-
-  if (!linked.error && linked.data && linked.data.length) {
-    base = linked.data[0];
-  } else {
-    const latest = await supabase
-      .from('golfers')
-      .select('id, hi, dob')
-      .order('id', { ascending: false })
-      .limit(1);
-    if (!latest.error && latest.data && latest.data.length) base = latest.data[0];
-  }
-
-  if (!base) {
-    console.warn('No golfers found');
-    return null;
-  }
-
-  const golferId = base.id;
-
-  // 2) SG per quarter (d, total, tee, approach, short, putting)
-  const { data: sgRows } = await supabase
-    .from('sg_quarter')
-    .select('d, total, tee, approach, short, putting')
-    .eq('golfer_id', golferId)
-    .order('d');
-
-  const sg = (sgRows || []).map(r => ({
-    d: r.d,
-    total: +r.total || 0,
-    tee: +r.tee || 0,
-    approach: +r.approach || 0,
-    short: +r.short || 0,
-    putting: +r.putting || 0,
-  }));
-
-  // 3) Physical per quarter (d, chs, ball, cmj, bj, height, weight)
-  const { data: physRows } = await supabase
-    .from('phys_quarter')
-    .select('d, chs, ball, cmj, bj, height, weight')
-    .eq('golfer_id', golferId)
-    .order('d');
-
-  const phys = (physRows || []).map(r => ({
-    d: r.d,
-    chs: +r.chs || 0,
-    ball: +r.ball || 0,
-    cmj: +r.cmj || 0,
-    bj: +r.bj || 0,
-    height: +r.height || 0,
-    weight: +r.weight || 0,
-  }));
-
-  // 4) Coach ratings per quarter (d, holing, short, wedge, flight, plan)
-  const { data: rateRows } = await supabase
-    .from('coach_ratings')
-    .select('d, holing, short, wedge, flight, plan')
-    .eq('golfer_id', golferId)
-    .order('d');
-
-  const ratings = (rateRows || []).map(r => ({
-    d: r.d,
-    holing: +r.holing || 0,
-    short: +r.short || 0,
-    wedge: +r.wedge || 0,
-    flight: +r.flight || 0,
-    plan: +r.plan || 0,
-  }));
-
-  // 5) Attendance per quarter (d, group_sess, one1) → map to {group} for UI
-  const { data: attRows } = await supabase
-    .from('attendance')
-    .select('d, group_sess, one1')
-    .eq('golfer_id', golferId)
-    .order('d');
-
-  const attendance = (attRows || []).map(r => ({
-    d: r.d,
-    group: +r.group_sess || 0,
-    one1: +r.one1 || 0,
-  }));
-
-  return {
-    id: golferId,
-    name: 'Demo Golfer',
-    hi: +(base.hi ?? 0),
-    dob: base.dob ?? null,
-    sg,
-    phys,
-    ratings,
-    attendance,
-  };
+/* ================= App State ================= */
+const state = {
+  role: null,
+  golfers: [],
+  loggedGolferId: null,
+  currentGolfer: null,
+  eggUnlocked: false,
+  compare: { columns: ["DOB","Age","HI","SG Total"], dateWindow: "All", sortKey: "sg_total", sortDir: -1 },
 };
+
 
 
 // === Load the real golfer from Supabase (keeps the same shape the UI already uses) ===
@@ -209,86 +117,30 @@ window.loadGolferFromDB = async function (userId) {
     one1: +r.one1 || 0,
   }));
 
-  return {
-    id: golferId,
-    name: 'Demo Golfer',
-    hi: +(base.hi ?? 0),
-    dob: base.dob ?? null,
-    sg,
-    phys,
-    ratings,
-    attendance,
-  };
+  // derive age from dob for UI
+const dobStr = base.dob ?? null;
+let agePrecise = null, age = null;
+if (dobStr) {
+  const dobDate = new Date(dobStr + "T00:00:00Z");
+  agePrecise = (Date.now() - dobDate.getTime()) / (365.2425 * 24 * 3600 * 1000);
+  agePrecise = Math.round(agePrecise * 10) / 10;
+  age = Math.floor(agePrecise);
+}
+
+return {
+  id: golferId,
+  name: 'Demo Golfer',
+  hi: +(base.hi ?? 0),
+  dob: base.dob ?? null,
+  age,
+  agePrecise,
+  sg,
+  phys,
+  ratings,
+  attendance,
 };
 
 
-
-/* ================= Deterministic demo data ================= */
-const RNG = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(123456);
-const rand = (min,max) => Math.round((min+(max-min)*RNG())*10)/10;
-const randi = (min,max) => Math.floor(min + (max-min+1)*RNG());
-
-const QUARTERS = ["2024-10","2025-01","2025-04","2025-07"]; // quarterly labels
-const FIRSTS = ["Millie","Jack","Ben","Louisa","Ollie","Oscar","Eli","Kye","Olivia","George","Harry","Tom","Evie","Charlie","Aidan","Lewi","Nate","Willow","Sam","Tyler","Thomas","Finley","Imogen","Poppy","Noah","Maya","Isaac","Ruby","Theo","Lily","Henry","Sofia","Leo"];
-const LASTS  = ["Hixon","Harrison","Dobson","Hamilton","Porteous","Knowles","Gales","Bouttell","Metcalfe","Reed","Sheen","Hartshorne","Goodman","Curry","Robson","O’Rourke","Suggitt","Doherty","Scott","Perkins","Hudson","Hall","Marsden","Balderson","Parker","Hill","Stone","Bennett","Morris","Wright","Kelly","Brooks","Shaw","Foster","Cooper","James"];
-
-// Use a fixed "today" for precise age so demo is stable
-const REF_DATE = new Date("2025-07-01T00:00:00Z");
-function preciseAge(dobStr){
-  const dob = new Date(dobStr+"T00:00:00Z");
-  const ms = REF_DATE - dob;
-  return Math.round((ms / (365.25*24*3600*1000))*10)/10; // years to 1dp
-}
-
-function makeGolfer(i){
-  const f = FIRSTS[i % FIRSTS.length], l = LASTS[i % LASTS.length];
-  const dobYear = randi(2008, 2014);
-  const dob = `${dobYear}-${String(randi(1,12)).padStart(2,'0')}-${String(randi(1,28)).padStart(2,'0')}`;
-  const age = 2025 - dobYear;           // coarse age (still used in tables)
-  const agePrecise = preciseAge(dob);   // precise age (for analysis/correlation)
-  const baseSG = rand(0.0, 2.0);
-  const putt = Math.max(-0.5, Math.min(1.2, rand(0.0, 0.8)));
-  const hi = Math.max(0, Math.round((8 - baseSG*2 + rand(-0.5,1.0))*10)/10);
-
-  const sg = QUARTERS.map((q,idx)=>({
-    d:q,
-    total: Math.round((baseSG + (idx-2)*0.1 + rand(-0.2,0.2))*10)/10,
-    tee:   Math.round(rand(-0.3,0.9)*10)/10,
-    approach: Math.round(rand(-0.2,0.8)*10)/10,
-    short: Math.round(rand(-0.2,0.6)*10)/10,
-    putting: Math.round((putt + (idx-1)*0.05 + rand(-0.15,0.15))*10)/10
-  }));
-
-  const phys = QUARTERS.map((q,idx)=>{
-    const chs = randi(92,108) + idx;
-    const ball = chs + randi(40,46);
-    return { d:q, chs, ball, cmj:randi(28,40), bj:randi(200,260), height:randi(150,190), weight:randi(45,85) };
-  });
-
-  const ratings = QUARTERS.map(q=>({
-    d:q, holing:randi(5,9), short:randi(5,9), wedge:randi(5,9), flight:randi(5,9), plan:randi(5,9)
-  }));
-
-  const attendance = QUARTERS.map(q=>({
-    d:q, group:randi(0,3), one1:randi(0,3)
-  }));
-
-  return { id:i+1, name:`${f} ${l}`, dob, age, agePrecise, hi, sg, phys, ratings, attendance };
-}
-
-const state = {
-  golfers: Array.from({length:40}, (_,i)=>makeGolfer(i)),
-  role: null,
-  loggedGolferId: 1,
-  currentGolfer: null,
-  compare: {
-    dateWindow: "This Cycle",
-    columns: ["DOB","Age","SG Total","SG Putting","Ball Speed","CHS","Att (G/I)"],
-    sortKey: "sg_total",
-    sortDir: -1,
-    lastPreset: ""
-  }
-};
 
 /* ================= Helpers ================= */
 const last = arr => arr[arr.length-1];
@@ -463,10 +315,12 @@ window.impersonate = async function (role) {
   if (role === "golfer") {
     const uid = "cde2db4f-351b-4056-b28a-166a615a0b67"; // demo golfer UID
     const g = await window.loadGolferFromDB(uid);
-    state.currentGolfer = g;
-    state.golfers = [g];
-    renderGolferDashboard(g);   // update UI with live data
-    return; // golfer flow done
+state.currentGolfer = g;
+state.golfers = [g];
+state.loggedGolferId = g.id;                    // so getLoggedGolfer() finds the right one
+window.QUARTERS = g.sg.map(r => r.d);           // provide the quarters array used by helpers
+navTo('dashboard');                              // ✅ correct: lets the nav render the dashboard
+return; // golfer flow done
   }
 
   // coach/admin nav stays the same
@@ -493,25 +347,6 @@ window.impersonate = async function (role) {
 };
 
 
-
-
-  // Build the role nav (unchanged)
-  const nav = document.getElementById("roleNav"); nav.innerHTML = "";
-  let pages = [];
-  if (role === "golfer") pages = ["Dashboard","SG Detail","Physical Detail","Coach Ratings Detail","Attendance Detail","My Profile"];
-  if (role === "coach")  pages = ["Compare","Correlations","Trends"];
-  if (role === "admin")  pages = ["Admin Dashboard","Users","Cycles","Compliance","Correlations","Trends"];
-
-  pages.forEach(p => {
-    const b = document.createElement("button");
-    b.textContent = p;
-    b.onclick = () => navTo(p.toLowerCase().replace(/ /g,"-"));
-    nav.appendChild(b);
-  });
-
-  if (pages.length) navTo(pages[0].toLowerCase().replace(/ /g,"-"));
-  if (window.renderEggButton) window.renderEggButton();
-}
 
 
 function navTo(view){
