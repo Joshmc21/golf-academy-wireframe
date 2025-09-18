@@ -34,7 +34,7 @@ window.loadGolferFromDB = async function (userId) {
   const linked = await supabase
     .from('golfers')
     .select('id, hi, dob')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .limit(1);
 
   if (!linked.error && linked.data && linked.data.length) {
