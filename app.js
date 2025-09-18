@@ -54,21 +54,49 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
     }
 
     // 2) Strokes Gained (per quarter)
-    const { data: sgRows, error: sgErr } = await supabase
+    // 2) Strokes Gained (per quarter) — try new names, fallback to legacy
+let sgRows = [];
+{
+  // Attempt with new column names
+  const { data, error } = await supabase
+    .from('sg_quarter')
+    .select('d, total, tee, approach, short, putting')
+    .eq('golfer_id', golferId)
+    .order('d', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (!error) {
+    sgRows = data || [];
+  } else {
+    console.warn('sg_quarter (new cols) error, retrying legacy:', error);
+
+    // Fallback: legacy column names -> alias them to the new field names
+    const { data: legacyData, error: legacyErr } = await supabase
       .from('sg_quarter')
-      .select('d, total, tee, approach, short, putting')
+      // alias:  total<-sg_total, tee<-sg_tee, approach<-sg_app, short<-sg_arg, putting<-sg_putt
+      .select('d, total:sg_total, tee:sg_tee, approach:sg_app, short:sg_arg, putting:sg_putt')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
-    if (sgErr) console.warn('sg_quarter error:', sgErr);
-    const sg = (sgRows || []).map(r => ({
-      d: r.d ?? '',
-      total: +r.total || 0,
-      tee: +r.tee || 0,
-      approach: +r.approach || 0,
-      short: +r.short || 0,
-      putting: +r.putting || 0,
-    }));
+
+    if (legacyErr) {
+      console.warn('sg_quarter (legacy cols) error:', legacyErr);
+      sgRows = [];
+    } else {
+      sgRows = legacyData || [];
+    }
+  }
+}
+
+const sg = sgRows.map(r => ({
+  d: r.d ?? '',
+  total: +r.total || 0,
+  tee: +r.tee || 0,
+  approach: +r.approach || 0,
+  short: +r.short || 0,
+  putting: +r.putting || 0,
+}));
+
 
     // 3) Physical (per quarter)
     const { data: physRows, error: physErr } = await supabase
