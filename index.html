@@ -1,13 +1,5 @@
 <!doctype html>
 <html lang="en">
-  <link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icons/icon-192.png">
-<meta name="theme-color" content="#FFBF00">
-
-<!-- iOS full-screen + icon -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,7 +16,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
-  <!-- (fallbacks; optional if you only ship 180x180) -->
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-192.png" />
   <link rel="icon" href="/icons/icon-192.png" />
@@ -33,10 +24,8 @@
   <div class="app">
     <aside class="sidebar">
       <div class="logo">
-        <!-- swap this for your real logo when ready -->
         <img src="" alt="ProPath Logo" />
       </div>
-
       <div id="whoami" class="muted">Not logged in</div>
 
       <div class="section">
@@ -62,25 +51,46 @@
     </main>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Simple auth panel -->
+  <div id="authPanel" style="position:fixed; right:12px; top:12px; z-index:1000;">
+    <button id="btnLogout" style="display:none;">Logout</button>
+    <button id="btnShowLogin">Login</button>
+  </div>
 
-  <script src="app.js?v=dev8" defer></script>
-  <!-- Easter Egg: Chip & Putt Modal -->
-<div id="eggModal" class="egg-modal" aria-hidden="true">
-  <div class="egg-modal__dialog" role="dialog" aria-modal="true" aria-label="Chip & Putt">
-    <button class="egg-close" id="eggClose" title="Close">×</button>
-    <canvas id="eggCanvas" width="720" height="420"></canvas>
-    <div class="egg-hud">
-      <span id="eggStrokes">Strokes: 0/3</span>
-      <span id="eggMsg"></span>
-      <button id="eggReset" class="btn">Reset</button>
+  <!-- Login sheet -->
+  <div id="loginSheet" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:16px 20px; width:320px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+      <h3 style="margin:0 0 10px;">Sign in</h3>
+      <label>Email</label>
+      <input id="loginEmail" type="email" style="width:100%; margin:6px 0 10px;"/>
+      <label>Password</label>
+      <input id="loginPass" type="password" style="width:100%; margin:6px 0 16px;"/>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="btnCancelLogin">Cancel</button>
+        <button id="btnDoLogin">Sign in</button>
+      </div>
+      <p id="loginMsg" style="color:#c00; margin-top:10px;"></p>
     </div>
   </div>
-</div>
 
+  <!-- Chip & Putt Modal -->
+  <div id="eggModal" class="egg-modal" aria-hidden="true">
+    <div class="egg-modal__dialog" role="dialog" aria-modal="true" aria-label="Chip & Putt">
+      <button class="egg-close" id="eggClose" title="Close">×</button>
+      <canvas id="eggCanvas" width="720" height="420"></canvas>
+      <div class="egg-hud">
+        <span id="eggStrokes">Strokes: 0/3</span>
+        <span id="eggMsg"></span>
+        <button id="eggReset" class="btn">Reset</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Chip & Putt floating button -->
-<button id="eggFab" class="egg-fab" type="button" aria-label="Open Chip & Putt">⛳️</button>
-</button>
+  <button id="eggFab" class="egg-fab" type="button" aria-label="Open Chip & Putt">⛳️</button>
+
+  <!-- Scripts at the very end -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=dev8" defer></script>
 </body>
 </html>

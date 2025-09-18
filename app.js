@@ -3,6 +3,76 @@ const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+// --- Auth wiring ---
+let session = null;
+
+async function initAuth() {
+  const { data } = await supabase.auth.getSession();
+  session = data?.session ?? null;
+  updateAuthUI();
+
+  supabase.auth.onAuthStateChange((_event, sess) => {
+    session = sess;
+    updateAuthUI();
+    if (session) {
+      // optional: reload current golfer view after login
+      if (typeof window.impersonate === 'function') {
+        // use linked golfer if you have it; otherwise fallback to latest
+        window.impersonate('golfer');
+      }
+    }
+  });
+}
+
+function updateAuthUI() {
+  const loggedIn = !!session;
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnShowLogin) btnShowLogin.style.display = loggedIn ? 'none' : 'inline-block';
+  if (btnLogout) btnLogout.style.display = loggedIn ? 'inline-block' : 'none';
+}
+
+async function loginWithEmail(email, password) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
+async function logout() {
+  await supabase.auth.signOut();
+}
+
+function showLoginSheet(show) {
+  const el = document.getElementById('loginSheet');
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
+// Hook up buttons (after DOM ready)
+window.addEventListener('DOMContentLoaded', () => {
+  initAuth();
+
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  const btnCancelLogin = document.getElementById('btnCancelLogin');
+  const btnDoLogin = document.getElementById('btnDoLogin');
+  const btnLogout = document.getElementById('btnLogout');
+
+  btnShowLogin?.addEventListener('click', () => showLoginSheet(true));
+  btnCancelLogin?.addEventListener('click', () => showLoginSheet(false));
+  btnDoLogin?.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const msg = document.getElementById('loginMsg');
+    msg.textContent = '';
+    try {
+      await loginWithEmail(email, pass);
+      showLoginSheet(false);
+    } catch (e) {
+      msg.textContent = e.message || 'Login failed';
+    }
+  });
+  btnLogout?.addEventListener('click', logout);
+});
+
+
 // Quick test helper you can run in the browser console
 window.testSupabase = async () => {
   const { data, error } = await supabase.from("golfers").select("id, hi").limit(1);
@@ -355,6 +425,13 @@ const COMPARE_PRESETS = [
 
 
 function navTo(view){
+
+if (!session) {
+  // not logged in: show login and stop navigation
+  showLoginSheet(true);
+  return;
+}
+
   const main=document.getElementById("mainContent");
 
   // restrict coach/admin-only pages
