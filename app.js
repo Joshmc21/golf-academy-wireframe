@@ -625,7 +625,6 @@ const g = await window.loadGolferFromDB(golferId);
   if (window.renderEggButton) window.renderEggButton();
 };
 
-
 /* ======== Golfer views (same as before, wrapped in functions) ======== */
 function renderGolferDashboard(main){
   const g = getLoggedGolfer();
@@ -1966,6 +1965,16 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(console.error);
   });
 }
+
+// Wire Compare nav button
+document.addEventListener('DOMContentLoaded', () => {
+  const cmpBtn = document.getElementById('navCompare');
+  if (cmpBtn) {
+    cmpBtn.addEventListener('click', () => {
+      navTo('compare');
+    });
+  }
+});
 
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
