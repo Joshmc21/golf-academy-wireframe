@@ -204,32 +204,20 @@ window.setQuartersFrom = function setQuartersFrom(g) {
 window.__sgSchema = window.__sgSchema || null;
 
 
-// === Load golfer + quarterly data from Supabase (schema: d/group_sess/golfer_id) ===
+// ==== REPLACE ENTIRE loadGolferFromDB WITH THIS ====
 window.loadGolferFromDB = async function loadGolferFromDB(userId) {
   try {
-    // 0) Coerce to numeric golfer.id (your app passes a numeric id now)
-    let golferId = Number(userId);
-
-    // Optional fallback: if not a number, use the latest golfer row
+    // 0) Coerce to number for safety
+    const golferId = Number(userId);
     if (!Number.isFinite(golferId)) {
-      const { data: latest, error: latestErr } = await supabase
-        .from('golfers')
-        .select('id, hi, dob')
-        .order('id', { ascending: false })
-        .limit(1);
-      if (latestErr || !latest || !latest.length) {
-        console.warn('loadGolferFromDB: no golfer available', latestErr);
-        return null;
-      }
-      golferId = latest[0].id;
+      console.warn('loadGolferFromDB: userId must be numeric golfer.id. Got:', userId);
+      return null;
     }
 
-    // --- reminder logic moved below once golfer data is fetched ---
-
-    // 1) Base golfer row
+    // 1) Base golfer row (id, hi, dob, next_update)
     const { data: base, error: baseErr } = await supabase
       .from('golfers')
-      .select('id, hi, dob')
+      .select('id, hi, dob, next_update')
       .eq('id', golferId)
       .single();
 
@@ -238,20 +226,27 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
       return null;
     }
 
-  // 2) SG (per quarter) — try new column names, fall back to legacy sg_* names
-let sg = [];
-{
-  // --- Pass A: new column names ---
-  let res = await supabase
-    .from('sg_quarter')
-    .select('d, total, tee, approach, short, putting')
-    .eq('golfer_id', golferId)
-    .order('d', { ascending: true })
-    .order('id', { ascending: true });
+    // 1a) Optional reminder based on next_update (if column/data exists)
+    if (base.next_update) {
+      const nextUpdate = new Date(base.next_update);
+      const daysUntil = Math.ceil((nextUpdate - new Date()) / (1000 * 60 * 60 * 24));
+      if (daysUntil <= 7 && daysUntil > 0) {
+        alert(`⛳ Reminder: Your next update is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`);
+      } else if (daysUntil <= 0) {
+        alert('⚠️ Your update is overdue! Please refresh your Handicap Index.');
+      }
+    }
 
-  if (!res.error) {
-    const rows = res.data || [];
-    sg = rows.map(r => ({
+    // 2) SG (per quarter)
+    const { data: sgRows, error: sgErr } = await supabase
+      .from('sg_quarter')
+      .select('d, total, tee, approach, short, putting')
+      .eq('golfer_id', golferId)
+      .order('d', { ascending: true })
+      .order('id', { ascending: true }); // tie-break
+
+    if (sgErr) console.warn('sg_quarter error:', sgErr);
+    const sg = (sgRows || []).map(r => ({
       d: r.d ?? '',
       total: +r.total || 0,
       tee: +r.tee || 0,
@@ -259,38 +254,6 @@ let sg = [];
       short: +r.short || 0,
       putting: +r.putting || 0,
     }));
-  } else {
-    // If it looks like “column … does not exist”, retry with legacy names
-    const msg = (res.error.message || '').toLowerCase();
-    if (res.error.code === '42703' || msg.includes('does not exist')) {
-      // --- Pass B: legacy sg_* column names ---
-      const legacy = await supabase
-        .from('sg_quarter')
-        .select('d, sg_total, sg_tee, sg_approach, sg_short, sg_putting')
-        .eq('golfer_id', golferId)
-        .order('d', { ascending: true })
-        .order('id', { ascending: true });
-
-      if (!legacy.error) {
-        const rows = legacy.data || [];
-        sg = rows.map(r => ({
-          d: r.d ?? '',
-          total: +(r.sg_total ?? 0),
-          tee: +(r.sg_tee ?? 0),
-          approach: +(r.sg_approach ?? 0),
-          short: +(r.sg_short ?? 0),
-          putting: +(r.sg_putting ?? 0),
-        }));
-      } else {
-        console.warn('sg_quarter legacy error:', legacy.error);
-      }
-    } else {
-      console.warn('sg_quarter error:', res.error);
-    }
-  }
-}
-
-
 
     // 3) Physical (per quarter)
     const { data: physRows, error: physErr } = await supabase
@@ -299,6 +262,7 @@ let sg = [];
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
+
     if (physErr) console.warn('phys_quarter error:', physErr);
     const phys = (physRows || []).map(r => ({
       d: r.d ?? '',
@@ -310,13 +274,14 @@ let sg = [];
       weight: +r.weight || 0,
     }));
 
-    // 4) Coach ratings (per quarter)
+    // 4) Coach ratings
     const { data: rateRows, error: rateErr } = await supabase
       .from('coach_ratings')
       .select('d, holing, short, wedge, flight, plan')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
+
     if (rateErr) console.warn('coach_ratings error:', rateErr);
     const ratings = (rateRows || []).map(r => ({
       d: r.d ?? '',
@@ -327,13 +292,14 @@ let sg = [];
       plan: +r.plan || 0,
     }));
 
-    // 5) Attendance (per quarter)
+    // 5) Attendance
     const { data: attRows, error: attErr } = await supabase
       .from('attendance')
       .select('d, group_sess, one1')
       .eq('golfer_id', golferId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
+
     if (attErr) console.warn('attendance error:', attErr);
     const attendance = (attRows || []).map(r => ({
       d: r.d ?? '',
@@ -341,12 +307,13 @@ let sg = [];
       one1: +r.one1 || 0,
     }));
 
-    // Derive age for UI (optional)
+    // 6) Derive age for UI (optional)
     const dobStr = base.dob ?? null;
     let agePrecise = null, age = null;
     if (dobStr) {
       const dobDate = new Date(dobStr + 'T00:00:00Z');
-      agePrecise = Math.round(((Date.now() - dobDate.getTime()) / (365.2425 * 24 * 3600 * 1000)) * 10) / 10;
+      agePrecise = (Date.now() - dobDate.getTime()) / (365.2425 * 24 * 3600 * 1000);
+      agePrecise = Math.round(agePrecise * 10) / 10;
       age = Math.floor(agePrecise);
     }
 
@@ -356,9 +323,10 @@ let sg = [];
 
     return {
       id: golferId,
-      name: 'Demo Golfer',     // you can replace with a real name field later
+      name: 'Demo Golfer',
       hi: +(base.hi ?? 0),
       dob: base.dob ?? null,
+      next_update: base.next_update ?? null,
       age, agePrecise,
       sg, phys, ratings, attendance,
     };
@@ -367,23 +335,8 @@ let sg = [];
     return null;
   }
 };
+// ==== END REPLACEMENT ====
 
-if (baseErr || !base) {
-  console.warn('loadGolferFromDB: golfer not found', baseErr);
-  return null;
-}
-
-// ✅ Reminder logic now uses real data
-if (base.next_update) {
-  const nextUpdate = new Date(base.next_update);
-  const daysUntil = Math.ceil((nextUpdate - new Date()) / (1000 * 60 * 60 * 24));
-
-  if (daysUntil <= 7 && daysUntil > 0) {
-    alert(`⛳ Reminder: Your next update is due in ${daysUntil} days.`);
-  } else if (daysUntil <= 0) {
-    alert(`⚠️ Your update is overdue! Please refresh your Handicap Index.`);
-  }
-}
 
 // === AUTH STATE LISTENER ===
 supabase.auth.onAuthStateChange(async (event, session) => {
