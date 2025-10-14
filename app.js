@@ -111,7 +111,7 @@ async function initAuth() {
 
 function updateAuthUI() {
   document.getElementById('login-splash').style.display = 'none';
-  document.getElementById('main-content').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'block';
   const loggedIn = !!session;
   const btnShowLogin = document.getElementById('btnShowLogin');
   const btnLogout = document.getElementById('btnLogout');
@@ -380,7 +380,7 @@ let sg = [];
 // === AUTH STATE LISTENER ===
 supabase.auth.onAuthStateChange(async (event, session) => {
   const splash = document.getElementById('login-splash');
-  const mainContent = document.getElementById('main-content');
+  const mainContent = document.getElementById('mainContent');
 
   if (session && session.user) {
     // User is logged in
