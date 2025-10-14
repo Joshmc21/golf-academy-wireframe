@@ -9,7 +9,8 @@
     { "src": "sw.js", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(app\\.js|app\\.css|manifest\\.json|propath_logo\\.png|sw\\.js)", "dest": "/$1" },
+    { "src": "/.*", "dest": "/index.html" }
   ]
 }
 
