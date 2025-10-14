@@ -99,6 +99,23 @@
   <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-192.png" />
   <link rel="icon" href="/icons/icon-192.png" />
 </head>
+
+<!-- ==================== Easter Egg: Chip & Putt ==================== -->
+<div id="eggModal" aria-hidden="true" class="modal">
+  <div class="modal-content">
+    <canvas id="eggCanvas" width="720" height="420"></canvas>
+    <p id="eggMsg">Drag from the ball to aim. Release to putt.</p>
+    <p id="eggStrokes">Strokes: 0/3</p>
+    <div class="modal-actions">
+      <button id="eggReset" class="btn">Reset</button>
+      <button id="eggClose" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Button (FAB) -->
+<button id="eggFab" class="fab" title="Play Chip & Putt">⛳</button>
+
 <body>
   <!-- LOGIN SPLASH -->
   <div id="login-splash" class="splash-screen hidden">
