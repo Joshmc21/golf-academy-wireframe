@@ -673,287 +673,289 @@ function renderGolferDashboard(main){
       </div>
     </div>
   `;
+  
   /* ==================== Easter Egg: Chip & Putt (Canvas) ==================== */
-  document.addEventListener("DOMContentLoaded", () => {
-    (function(){
-      const modal = document.getElementById('eggModal');
-      const canvas = document.getElementById('eggCanvas');
-      if (!canvas) {
-        console.warn("eggCanvas element not found — skipping Easter Egg init");
-        return;
-      }
-      const ctx = canvas.getContext('2d');
-      const closeBtn = document.getElementById('eggClose');
-      const fab = document.getElementById('eggFab');
-      const msgEl = document.getElementById('eggMsg');
-      const strokesEl = document.getElementById('eggStrokes');
-      const resetBtn = document.getElementById('eggReset');
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById('eggModal');
+  const canvas = document.getElementById('eggCanvas');
+  const closeBtn = document.getElementById('eggClose');
+  const fab = document.getElementById('eggFab');
+  const msgEl = document.getElementById('eggMsg');
+  const strokesEl = document.getElementById('eggStrokes');
+  const resetBtn = document.getElementById('eggReset');
 
-      // Demo unlock: Shift+G toggles unlock
-      window.addEventListener('keydown', (e)=>{
-        if(e.shiftKey && (e.key==='G' || e.key==='g')){
-          state.eggUnlocked = !state.eggUnlocked;
-          renderEggButton();
-          const t = state.eggUnlocked ? 'Easter Egg unlocked! (⛳ button enabled)' : 'Easter Egg hidden.';
-          toast(t);
-        }
-      });
-    })();
+  if (!canvas) {
+    console.warn("eggCanvas element not found — skipping Easter Egg init");
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  // ====== State ======
+  let ball, hole, obstacles, dragging = false, aimStart = null, aimEnd = null;
+  let vx = 0, vy = 0, animId = null, strokes = 0, finished = false;
+
+  // ====== Unlock demo ======
+  window.addEventListener('keydown', (e) => {
+    if (e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+      state.eggUnlocked = !state.eggUnlocked;
+      renderEggButton();
+      const t = state.eggUnlocked
+        ? 'Easter Egg unlocked! (⛳ button enabled)'
+        : 'Easter Egg hidden.';
+      toast(t);
+    }
   });
 
-
-    // Show the floating button only for golfer role + unlocked
-    function renderEggButton(){
-      if(!fab) return;
-      const isGolfer = state.role === 'golfer';
-      fab.style.display = (isGolfer && state.eggUnlocked) ? 'inline-flex' : 'none';
-    }
-    // Integrate with your existing role/nav flows, if present:
-    const _impersonate = window.impersonate;
-    if(typeof _impersonate === 'function'){
-      window.impersonate = function(role){ _impersonate(role); renderEggButton(); }
-    } else { renderEggButton(); }
-
-    // Game state
-    let ball, hole, obstacles, dragging=false, aimStart=null, aimEnd=null, vx=0, vy=0, animId=null, strokes=0, finished=false;
-
-    function reset(level=1){
-      const w = canvas.width, h = canvas.height;
-      ball = { x:120, y:h-120, r:8 };
-      hole = { x:w-120, y:120, r:12 };
-      obstacles = [
-        // simple sand and water zones (friction changes)
-        { type:'sand', x:w/2-60, y:h/2-20, w:120, h:40 },
-        { type:'water', x:w/2-20, y:h/2+60, w:40, h:120 }
-      ];
-      vx = vy = 0; strokes = 0; finished = false;
-      msgEl.textContent = 'Drag from the ball to aim. Release to putt.';
-      updateHUD();
-      cancelAnimationFrame(animId);
-      draw();
-    }
-
-    function updateHUD(){
-      strokesEl.textContent = `Strokes: ${strokes}/3`;
-    }
-
-    function openModal(){
-      if(!modal) return;
-      modal.setAttribute('aria-hidden','false');
-      reset();
-      attachCanvasHandlers();
-      // trap focus on close for a11y (simple)
-      closeBtn.focus();
-    }
-    function closeModal(){
-      modal.setAttribute('aria-hidden','true');
-      detachCanvasHandlers();
-      cancelAnimationFrame(animId);
-    }
-
-    closeBtn.addEventListener('click', closeModal);
-    resetBtn.addEventListener('click', ()=> reset());
-    fab.addEventListener('click', openModal);
-    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.getAttribute('aria-hidden')==='false') closeModal(); });
-
-    function attachCanvasHandlers(){
-      canvas.addEventListener('mousedown', onDown);
-      canvas.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-      canvas.addEventListener('touchstart', onTouchDown, {passive:false});
-      canvas.addEventListener('touchmove', onTouchMove, {passive:false});
-      canvas.addEventListener('touchend', onTouchEnd);
-    }
-    function detachCanvasHandlers(){
-      canvas.removeEventListener('mousedown', onDown);
-      canvas.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      canvas.removeEventListener('touchstart', onTouchDown);
-      canvas.removeEventListener('touchmove', onTouchMove);
-      canvas.removeEventListener('touchend', onTouchEnd);
-    }
-
-    function pt(e){
-      const rect = canvas.getBoundingClientRect();
-      return { x:(e.clientX-rect.left)*canvas.width/rect.width, y:(e.clientY-rect.top)*canvas.height/rect.height };
-    }
-    function tpt(t){
-      const rect = canvas.getBoundingClientRect();
-      const touch = t.touches[0] || t.changedTouches[0];
-      return { x:(touch.clientX-rect.left)*canvas.width/rect.width, y:(touch.clientY-rect.top)*canvas.height/rect.height };
-    }
-
-    function onDown(e){
-      if(finished) return;
-      const p = pt(e);
-      if(dist(p, ball) <= ball.r+4){
-        dragging = true; aimStart = {x:ball.x, y:ball.y}; aimEnd = p;
-      }
-    }
-    function onMove(e){
-      if(!dragging) return;
-      aimEnd = pt(e);
-      draw();
-    }
-    function onUp(){
-      if(!dragging) return;
-      dragging = false;
-      puttFromAim();
-    }
-
-    function onTouchDown(e){ e.preventDefault(); onDown(e); }
-    function onTouchMove(e){ e.preventDefault(); onMove(e); }
-    function onTouchEnd(e){ e.preventDefault(); onUp(e); }
-
-    function puttFromAim(){
-      if(!aimStart || !aimEnd) return;
-      const dx = aimStart.x - aimEnd.x;
-      const dy = aimStart.y - aimEnd.y;
-      const power = Math.min(200, Math.hypot(dx,dy)); // cap power
-      if(power < 4) { aimStart = aimEnd = null; draw(); return; }
-      const k = 0.045; // power→velocity scale
-      vx = k * dx;
-      vy = k * dy;
-      aimStart = aimEnd = null;
-      strokes++;
-      updateHUD();
-      msgEl.textContent = 'Rolling…';
-      animate();
-    }
-
-    function animate(){
-      cancelAnimationFrame(animId);
-      const step = ()=>{
-        // friction (grass)
-        const friction = zoneFriction(ball);
-        vx *= (1 - friction);
-        vy *= (1 - friction);
-
-        ball.x += vx;
-        ball.y += vy;
-
-        // bounds (soft bounce)
-        const pad = 10;
-        if(ball.x < pad+ball.r){ ball.x = pad+ball.r; vx = -vx*0.45; }
-        if(ball.x > canvas.width-pad-ball.r){ ball.x = canvas.width-pad-ball.r; vx = -vx*0.45; }
-        if(ball.y < pad+ball.r){ ball.y = pad+ball.r; vy = -vy*0.45; }
-        if(ball.y > canvas.height-pad-ball.r){ ball.y = canvas.height-pad-ball.r; vy = -vy*0.45; }
-
-        // stop threshold
-        if(Math.hypot(vx,vy) < 0.02){
-          vx = vy = 0;
-        }
-
-        // hole detection
-        if(inHole(ball, hole)){
-          finished = true;
-          vx = vy = 0;
-          msgEl.textContent = strokes === 1 ? 'ACE! 🥳' :
-                              strokes === 2 ? 'Birdie! 🔥' :
-                              strokes === 3 ? 'Par! 🙌' :
-                              'Holed it! 👏';
-        } else if(vx===0 && vy===0){
-          // check fail
-          if(strokes >= 3){
-            finished = true;
-            msgEl.textContent = 'Out of strokes! Try again.';
-          } else {
-            msgEl.textContent = 'Line it up…';
-          }
-        }
-
-        draw();
-        if(!finished && (vx!==0 || vy!==0)) animId = requestAnimationFrame(step);
-      };
-      animId = requestAnimationFrame(step);
-    }
-
-    function zoneFriction(b){
-      // default green rolling friction
-      let f = 0.02;
-      for(const z of obstacles){
-        if(b.x>z.x && b.x<z.x+z.w && b.y>z.y && b.y<z.y+z.h){
-          if(z.type==='sand') f = 0.07;
-          if(z.type==='water') f = 0.12;
-        }
-      }
-      return f;
-    }
-
-    function inHole(b,h){
-      const d = Math.hypot(b.x-h.x, b.y-h.y);
-      // if the center of ball within (hole radius - some tolerance), count it
-      return d < (h.r - 3);
-    }
-
-    function dist(p, b){ return Math.hypot(p.x-b.x, p.y-b.y); }
-
-    function draw(){
-      // background green
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      // fairway edges
-      ctx.fillStyle = '#66BB6A';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      // obstacles
-      for(const z of obstacles){
-        if(z.type==='sand'){ ctx.fillStyle='#E6D7A3'; }
-        else if(z.type==='water'){ ctx.fillStyle='#64B5F6'; }
-        else { ctx.fillStyle='#A5D6A7'; }
-        ctx.fillRect(z.x, z.y, z.w, z.h);
-      }
-
-      // hole
-      ctx.beginPath();
-      ctx.fillStyle = '#222';
-      ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI*2);
-      ctx.fill();
-
-      // flag
-      ctx.strokeStyle='#444'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(hole.x, hole.y - hole.r); ctx.lineTo(hole.x, hole.y - 40); ctx.stroke();
-      ctx.fillStyle='#FFBF00';
-      ctx.beginPath(); ctx.moveTo(hole.x, hole.y - 40); ctx.lineTo(hole.x+24, hole.y - 32); ctx.lineTo(hole.x, hole.y - 24); ctx.closePath(); ctx.fill();
-
-      // ball
-      ctx.beginPath();
-      ctx.fillStyle='#fff';
-      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-      ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.stroke();
-
-      // aim vector
-      if(aimStart && aimEnd){
-        ctx.strokeStyle='rgba(0,0,0,.6)';
-        ctx.lineWidth=2;
-        ctx.beginPath();
-        ctx.moveTo(aimStart.x, aimStart.y);
-        ctx.lineTo(aimEnd.x, aimEnd.y);
-        ctx.stroke();
-
-        // arrow head
-        const dx = aimStart.x - aimEnd.x, dy = aimStart.y - aimEnd.y;
-        const ang = Math.atan2(dy, dx);
-        const ax = aimStart.x - Math.cos(ang)*20;
-        const ay = aimStart.y - Math.sin(ang)*20;
-        ctx.beginPath();
-        ctx.moveTo(aimStart.x, aimStart.y);
-        ctx.lineTo(ax + Math.cos(ang+0.4)*10, ay + Math.sin(ang+0.4)*10);
-        ctx.lineTo(ax + Math.cos(ang-0.4)*10, ay + Math.sin(ang-0.4)*10);
-        ctx.closePath();
-        ctx.fillStyle='rgba(0,0,0,.6)';
-        ctx.fill();
-      }
-    }
-
-    function toast(t){
-      // minimal toast using console + optional DOM if you want later
-      console.log('[toast]', t);
-    }
-
-    window.openChipAndPutt = openModal;
-    window.renderEggButton = renderEggButton;
+  // ====== Render FAB ======
+  function renderEggButton() {
+    if (!fab) return;
+    const isGolfer = state.role === 'golfer';
+    fab.style.display = (isGolfer && state.eggUnlocked) ? 'inline-flex' : 'none';
   }
+
+  const _impersonate = window.impersonate;
+  if (typeof _impersonate === 'function') {
+    window.impersonate = function (role) { _impersonate(role); renderEggButton(); };
+  } else {
+    renderEggButton();
+  }
+
+  // ====== Game functions ======
+  function reset(level = 1) {
+    const w = canvas.width, h = canvas.height;
+    ball = { x: 120, y: h - 120, r: 8 };
+    hole = { x: w - 120, y: 120, r: 12 };
+    obstacles = [
+      { type: 'sand', x: w / 2 - 60, y: h / 2 - 20, w: 120, h: 40 },
+      { type: 'water', x: w / 2 - 20, y: h / 2 + 60, w: 40, h: 120 }
+    ];
+    vx = vy = 0; strokes = 0; finished = false;
+    msgEl.textContent = 'Drag from the ball to aim. Release to putt.';
+    updateHUD();
+    cancelAnimationFrame(animId);
+    draw();
+  }
+
+  function updateHUD() {
+    strokesEl.textContent = `Strokes: ${strokes}/3`;
+  }
+
+  function openModal() {
+    if (!modal) return;
+    modal.setAttribute('aria-hidden', 'false');
+    reset();
+    attachCanvasHandlers();
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.setAttribute('aria-hidden', 'true');
+    detachCanvasHandlers();
+    cancelAnimationFrame(animId);
+  }
+
+  // ====== Event bindings ======
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (resetBtn) resetBtn.addEventListener('click', () => reset());
+  if (fab) fab.addEventListener('click', openModal);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.getAttribute('aria-hidden') === 'false') closeModal();
+  });
+
+  // ====== Canvas control ======
+  function attachCanvasHandlers() {
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onTouchDown, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+  }
+
+  function detachCanvasHandlers() {
+    canvas.removeEventListener('mousedown', onDown);
+    canvas.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    canvas.removeEventListener('touchstart', onTouchDown);
+    canvas.removeEventListener('touchmove', onTouchMove);
+    canvas.removeEventListener('touchend', onTouchEnd);
+  }
+
+  // ====== Helpers ======
+  function pt(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * canvas.width / rect.width,
+      y: (e.clientY - rect.top) * canvas.height / rect.height
+    };
+  }
+
+  function tpt(t) {
+    const rect = canvas.getBoundingClientRect();
+    const touch = t.touches[0] || t.changedTouches[0];
+    return {
+      x: (touch.clientX - rect.left) * canvas.width / rect.width,
+      y: (touch.clientY - rect.top) * canvas.height / rect.height
+    };
+  }
+
+  function onDown(e) {
+    if (finished) return;
+    const p = pt(e);
+    if (dist(p, ball) <= ball.r + 4) {
+      dragging = true; aimStart = { x: ball.x, y: ball.y }; aimEnd = p;
+    }
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    aimEnd = pt(e);
+    draw();
+  }
+
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    puttFromAim();
+  }
+
+  function onTouchDown(e) { e.preventDefault(); onDown(e); }
+  function onTouchMove(e) { e.preventDefault(); onMove(e); }
+  function onTouchEnd(e) { e.preventDefault(); onUp(e); }
+
+  function puttFromAim() {
+    if (!aimStart || !aimEnd) return;
+    const dx = aimStart.x - aimEnd.x;
+    const dy = aimStart.y - aimEnd.y;
+    const power = Math.min(200, Math.hypot(dx, dy));
+    if (power < 4) { aimStart = aimEnd = null; draw(); return; }
+    const k = 0.045;
+    vx = k * dx;
+    vy = k * dy;
+    aimStart = aimEnd = null;
+    strokes++;
+    updateHUD();
+    msgEl.textContent = 'Rolling…';
+    animate();
+  }
+
+  function animate() {
+    cancelAnimationFrame(animId);
+    const step = () => {
+      const friction = zoneFriction(ball);
+      vx *= (1 - friction);
+      vy *= (1 - friction);
+      ball.x += vx;
+      ball.y += vy;
+
+      const pad = 10;
+      if (ball.x < pad + ball.r) { ball.x = pad + ball.r; vx = -vx * 0.45; }
+      if (ball.x > canvas.width - pad - ball.r) { ball.x = canvas.width - pad - ball.r; vx = -vx * 0.45; }
+      if (ball.y < pad + ball.r) { ball.y = pad + ball.r; vy = -vy * 0.45; }
+      if (ball.y > canvas.height - pad - ball.r) { ball.y = canvas.height - pad - ball.r; vy = -vy * 0.45; }
+
+      if (Math.hypot(vx, vy) < 0.02) { vx = vy = 0; }
+
+      if (inHole(ball, hole)) {
+        finished = true; vx = vy = 0;
+        msgEl.textContent = strokes === 1 ? 'ACE! 🥳' :
+          strokes === 2 ? 'Birdie! 🔥' :
+            strokes === 3 ? 'Par! 🙌' : 'Holed it! 👏';
+      } else if (vx === 0 && vy === 0) {
+        if (strokes >= 3) { finished = true; msgEl.textContent = 'Out of strokes! Try again.'; }
+        else { msgEl.textContent = 'Line it up…'; }
+      }
+
+      draw();
+      if (!finished && (vx !== 0 || vy !== 0)) animId = requestAnimationFrame(step);
+    };
+    animId = requestAnimationFrame(step);
+  }
+
+  function zoneFriction(b) {
+    let f = 0.02;
+    for (const z of obstacles) {
+      if (b.x > z.x && b.x < z.x + z.w && b.y > z.y && b.y < z.y + z.h) {
+        if (z.type === 'sand') f = 0.07;
+        if (z.type === 'water') f = 0.12;
+      }
+    }
+    return f;
+  }
+
+  function inHole(b, h) {
+    const d = Math.hypot(b.x - h.x, b.y - h.y);
+    return d < (h.r - 3);
+  }
+
+  function dist(p, b) { return Math.hypot(p.x - b.x, p.y - b.y); }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#66BB6A';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (const z of obstacles) {
+      if (z.type === 'sand') ctx.fillStyle = '#E6D7A3';
+      else if (z.type === 'water') ctx.fillStyle = '#64B5F6';
+      else ctx.fillStyle = '#A5D6A7';
+      ctx.fillRect(z.x, z.y, z.w, z.h);
+    }
+
+    ctx.beginPath();
+    ctx.fillStyle = '#222';
+    ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(hole.x, hole.y - hole.r); ctx.lineTo(hole.x, hole.y - 40); ctx.stroke();
+    ctx.fillStyle = '#FFBF00';
+    ctx.beginPath();
+    ctx.moveTo(hole.x, hole.y - 40);
+    ctx.lineTo(hole.x + 24, hole.y - 32);
+    ctx.lineTo(hole.x, hole.y - 24);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = '#fff';
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.2)';
+    ctx.stroke();
+
+    if (aimStart && aimEnd) {
+      ctx.strokeStyle = 'rgba(0,0,0,.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(aimStart.x, aimStart.y);
+      ctx.lineTo(aimEnd.x, aimEnd.y);
+      ctx.stroke();
+
+      const dx = aimStart.x - aimEnd.x, dy = aimStart.y - aimEnd.y;
+      const ang = Math.atan2(dy, dx);
+      const ax = aimStart.x - Math.cos(ang) * 20;
+      const ay = aimStart.y - Math.sin(ang) * 20;
+      ctx.beginPath();
+      ctx.moveTo(aimStart.x, aimStart.y);
+      ctx.lineTo(ax + Math.cos(ang + 0.4) * 10, ay + Math.sin(ang + 0.4) * 10);
+      ctx.lineTo(ax + Math.cos(ang - 0.4) * 10, ay + Math.sin(ang - 0.4) * 10);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,0,0,.6)';
+      ctx.fill();
+    }
+  }
+
+  function toast(t) {
+    console.log('[toast]', t);
+  }
+
+  // ====== Expose globally ======
+  window.openChipAndPutt = openModal;
+  window.renderEggButton = renderEggButton;
+});
 
 // Show Easter Egg button if game is loaded
 if (window.renderEggButton) window.renderEggButton();
