@@ -224,16 +224,7 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
       golferId = latest[0].id;
     }
 
-    if (g.next_update) {
-      const nextUpdate = new Date(g.next_update);
-      const daysUntil = Math.ceil((nextUpdate - new Date()) / (1000 * 60 * 60 * 24));
-
-      if (daysUntil <= 7 && daysUntil > 0) {
-        alert(`⛳ Reminder: Your next update is due in ${daysUntil} days.`);
-      } else if (daysUntil <= 0) {
-        alert(`⚠️ Your update is overdue! Please refresh your Handicap Index.`);
-      }
-    }
+    // --- reminder logic moved below once golfer data is fetched ---
 
     // 1) Base golfer row
     const { data: base, error: baseErr } = await supabase
@@ -376,6 +367,23 @@ let sg = [];
     return null;
   }
 };
+
+if (baseErr || !base) {
+  console.warn('loadGolferFromDB: golfer not found', baseErr);
+  return null;
+}
+
+// ✅ Reminder logic now uses real data
+if (base.next_update) {
+  const nextUpdate = new Date(base.next_update);
+  const daysUntil = Math.ceil((nextUpdate - new Date()) / (1000 * 60 * 60 * 24));
+
+  if (daysUntil <= 7 && daysUntil > 0) {
+    alert(`⛳ Reminder: Your next update is due in ${daysUntil} days.`);
+  } else if (daysUntil <= 0) {
+    alert(`⚠️ Your update is overdue! Please refresh your Handicap Index.`);
+  }
+}
 
 // === AUTH STATE LISTENER ===
 supabase.auth.onAuthStateChange(async (event, session) => {
