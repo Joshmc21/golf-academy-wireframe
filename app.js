@@ -674,25 +674,30 @@ function renderGolferDashboard(main){
     </div>
   `;
   /* ==================== Easter Egg: Chip & Putt (Canvas) ==================== */
-(function(){
-  const modal = document.getElementById('eggModal');
-  const canvas = document.getElementById('eggCanvas');
-  const ctx = canvas.getContext('2d');
-  const closeBtn = document.getElementById('eggClose');
-  const fab = document.getElementById('eggFab');
-  const msgEl = document.getElementById('eggMsg');
-  const strokesEl = document.getElementById('eggStrokes');
-  const resetBtn = document.getElementById('eggReset');
-
-  // Demo unlock: Shift+G toggles unlock
-  window.addEventListener('keydown', (e)=>{
-    if(e.shiftKey && (e.key==='G' || e.key==='g')){
-      state.eggUnlocked = !state.eggUnlocked;
-      renderEggButton();
-      const t = state.eggUnlocked ? 'Easter Egg unlocked! (⛳ button enabled)' : 'Easter Egg hidden.';
-      toast(t);
+document.addEventListener("DOMContentLoaded", () => {
+  (function(){
+    const modal = document.getElementById('eggModal');
+    const canvas = document.getElementById('eggCanvas');
+    if (!canvas) {
+      console.warn("eggCanvas element not found — skipping Easter Egg init");
+      return;
     }
-  });
+    const ctx = canvas.getContext('2d');
+    const closeBtn = document.getElementById('eggClose');
+    const fab = document.getElementById('eggFab');
+    const msgEl = document.getElementById('eggMsg');
+    const strokesEl = document.getElementById('eggStrokes');
+    const resetBtn = document.getElementById('eggReset');
+
+    // Demo unlock: Shift+G toggles unlock
+    window.addEventListener('keydown', (e)=>{
+      if(e.shiftKey && (e.key==='G' || e.key==='g')){s
+        state.eggUnlocked = !state.eggUnlocked;
+        renderEggButton();
+        const t = state.eggUnlocked ? 'Easter Egg unlocked! (⛳ button enabled)' : 'Easter Egg hidden.';
+        toast(t);
+      }
+    });
 
   // Show the floating button only for golfer role + unlocked
   function renderEggButton(){
@@ -1614,25 +1619,30 @@ function renderCoachProfile(main){
 }
 
 /* ==================== Easter Egg: Chip & Putt (Canvas) ==================== */
-(function(){
-  const modal = document.getElementById('eggModal');
-  const canvas = document.getElementById('eggCanvas');
-  const ctx = canvas.getContext('2d');
-  const closeBtn = document.getElementById('eggClose');
-  const fab = document.getElementById('eggFab');
-  const msgEl = document.getElementById('eggMsg');
-  const strokesEl = document.getElementById('eggStrokes');
-  const resetBtn = document.getElementById('eggReset');
-
-  // Demo unlock: Shift+G toggles unlock
-  window.addEventListener('keydown', (e)=>{
-    if(e.shiftKey && (e.key==='G' || e.key==='g')){
-      state.eggUnlocked = !state.eggUnlocked;
-      renderEggButton();
-      const t = state.eggUnlocked ? 'Easter Egg unlocked! (⛳ button enabled)' : 'Easter Egg hidden.';
-      toast(t);
+document.addEventListener("DOMContentLoaded", () => {
+  (function(){
+    const modal = document.getElementById('eggModal');
+    const canvas = document.getElementById('eggCanvas');
+    if (!canvas) {
+      console.warn("eggCanvas element not found — skipping Easter Egg init");
+      return;
     }
-  });
+    const ctx = canvas.getContext('2d');
+    const closeBtn = document.getElementById('eggClose');
+    const fab = document.getElementById('eggFab');
+    const msgEl = document.getElementById('eggMsg');
+    const strokesEl = document.getElementById('eggStrokes');
+    const resetBtn = document.getElementById('eggReset');
+
+    // Demo unlock: Shift+G toggles unlock
+    window.addEventListener('keydown', (e)=>{
+      if(e.shiftKey && (e.key==='G' || e.key==='g')){
+        state.eggUnlocked = !state.eggUnlocked;
+        renderEggButton();
+        const t = state.eggUnlocked ? 'Easter Egg unlocked! (⛳ button enabled)' : 'Easter Egg hidden.';
+        toast(t);
+      }
+    });
 
   // Show the floating button only for golfer role + unlocked
   function renderEggButton(){
