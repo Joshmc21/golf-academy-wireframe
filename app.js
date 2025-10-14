@@ -1,3 +1,8 @@
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'email' });
+  if (error) console.error('Login error:', error);
+});
+
 // --- helpers used by Compare view ---
 function calcAgeFromDOB(dobStr) {
   if (!dobStr) return null;
@@ -105,12 +110,20 @@ async function initAuth() {
 }
 
 function updateAuthUI() {
+  document.getElementById('login-splash').style.display = 'none';
+  document.getElementById('main-content').style.display = 'block';
   const loggedIn = !!session;
   const btnShowLogin = document.getElementById('btnShowLogin');
   const btnLogout = document.getElementById('btnLogout');
   if (btnShowLogin) btnShowLogin.style.display = loggedIn ? 'none' : 'inline-block';
   if (btnLogout) btnLogout.style.display = loggedIn ? 'inline-block' : 'none';
 }
+
+// === LOGIN HANDLER ===
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'email' });
+  if (error) console.error('Login error:', error);
+});
 
 async function loginWithEmail(email, password) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -209,6 +222,17 @@ window.loadGolferFromDB = async function loadGolferFromDB(userId) {
         return null;
       }
       golferId = latest[0].id;
+    }
+
+    if (g.next_update) {
+      const nextUpdate = new Date(g.next_update);
+      const daysUntil = Math.ceil((nextUpdate - new Date()) / (1000 * 60 * 60 * 24));
+
+      if (daysUntil <= 7 && daysUntil > 0) {
+        alert(`⛳ Reminder: Your next update is due in ${daysUntil} days.`);
+      } else if (daysUntil <= 0) {
+        alert(`⚠️ Your update is overdue! Please refresh your Handicap Index.`);
+      }
     }
 
     // 1) Base golfer row
@@ -353,8 +377,22 @@ let sg = [];
   }
 };
 
+// === AUTH STATE LISTENER ===
+supabase.auth.onAuthStateChange(async (event, session) => {
+  const splash = document.getElementById('login-splash');
+  const mainContent = document.getElementById('main-content');
 
-
+  if (session && session.user) {
+    // User is logged in
+    splash.classList.add('fade-out');
+    setTimeout(() => splash.classList.add('hidden'), 800);
+    mainContent.style.display = 'block';
+  } else {
+    // User not logged in
+    splash.classList.remove('hidden');
+    mainContent.style.display = 'none';
+  }
+});
 
 
 /* ================= Helpers ================= */
