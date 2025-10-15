@@ -234,8 +234,6 @@ async function loadGolferFromDB(userId) {
   }
 
   console.log('Golfer data loaded:', data);
-  
-
 
     // 1a) Optional reminder based on next_update (if column/data exists)
     if (base.next_update) {
@@ -341,11 +339,10 @@ async function loadGolferFromDB(userId) {
       age, agePrecise,
       sg, phys, ratings, attendance,
     };
-  } catch (e) {
+  } catch (error) {
     console.error('loadGolferFromDB fatal:', e);
     return null;
   }
-};
 // ==== END REPLACEMENT ====
 
 
