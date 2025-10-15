@@ -226,7 +226,7 @@ async function loadGolferFromDB(userId) {
   const { data, error } = await supabase
     .from('golfers')
     .select('*')
-    .eq('auth_id', userId)
+    .eq('user_id', userId)
     .single();
 
   if (error) {
