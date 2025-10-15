@@ -119,23 +119,6 @@ async function initAuth() {
   });
 }
 
-    if (session?.user?.id) {
-  console.log('✅ Logged in, loading golfer data for', session.user.id);
-  try {
-    const golfer = await loadGolferFromDB(session.user.id);
-    if (golfer) {
-      console.log('Rendering golfer dashboard for', golfer.name);
-      if (typeof renderGolferDashboard === 'function') {
-        renderGolferDashboard(golfer);
-      } else {
-        console.warn('renderGolferDashboard() not found.');
-      }
-    }
-  } catch (err) {
-    console.error('❌ Failed to load golfer data:', err);
-  }
-}
-
 function updateAuthUI() {
   const splash = document.getElementById('login-splash');
   const mainContent = document.getElementById('mainContent');
