@@ -123,21 +123,22 @@ async function initAuth() {
 
 function updateAuthUI() {
   const splash = document.getElementById('login-splash');
-  const main = document.getElementById('mainContent');
-  const loggedIn = !!session?.user?.id;
-
-  if (loggedIn) {
-    // Show the app content
-    splash.style.display = 'none';
-    main.style.display = 'block';
-  } else {
-    // Show login screen
-    splash.style.display = 'flex';   // or 'block' if you prefer
-    main.style.display = 'none';
-  }
-
+  const mainContent = document.getElementById('mainContent');
   const btnShowLogin = document.getElementById('btnShowLogin');
   const btnLogout = document.getElementById('btnLogout');
+
+  // show splash until we have confirmed login state
+  if (!session) {
+    console.log('🔒 No session yet — showing splash');
+    if (splash) splash.style.display = 'flex';
+    if (mainContent) mainContent.style.display = 'none';
+  } else {
+    console.log('✅ Session found — showing main app');
+    if (splash) splash.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'block';
+  }
+
+  const loggedIn = !!session?.user;
   if (btnShowLogin) btnShowLogin.style.display = loggedIn ? 'none' : 'inline-block';
   if (btnLogout) btnLogout.style.display = loggedIn ? 'inline-block' : 'none';
 }
