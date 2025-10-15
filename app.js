@@ -88,39 +88,42 @@ const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-// --- Auth wiring ---
+// === Auth wiring ===
 let session = null;
 
 async function initAuth() {
+  // 1️⃣ Try to recover existing session (for page refreshes)
   const { data } = await supabase.auth.getSession();
   session = data?.session ?? null;
   updateAuthUI();
 
-  // Try to load golfer immediately on startup if we have a session
+  // 2️⃣ If already logged in, load golfer data now
   if (session?.user?.id) {
+    console.log('✅ Restored session for:', session.user.id);
     await loadGolferFromDB(session.user.id);
   }
 
+  // 3️⃣ Listen for login/logout changes
   supabase.auth.onAuthStateChange(async (_event, sess) => {
     session = sess;
     updateAuthUI();
 
-    // Once a user logs in, reload the golfer data automatically
     if (session?.user?.id) {
+      console.log('✅ Logged in, loading golfer data for', session.user.id);
       try {
         await loadGolferFromDB(session.user.id);
-        console.log('✅ Golfer data loaded for user:', session.user.id);
       } catch (err) {
         console.error('❌ Failed to load golfer data:', err);
       }
     } else {
-      console.warn('⚠ No valid user ID found in session.');
+      console.warn('⚠️ No valid user ID found in session.');
     }
   });
 }
 
-// Kick off auth on first load
+// Kick off auth once on page load
 initAuth();
+
 
 function updateAuthUI() {
   document.getElementById('login-splash').style.display = 'none';
@@ -154,8 +157,6 @@ function showLoginSheet(show) {
 
 // Hook up buttons (after DOM ready)
 window.addEventListener('DOMContentLoaded', () => {
-  initAuth();
-
   const btnShowLogin = document.getElementById('btnShowLogin');
   const btnCancelLogin = document.getElementById('btnCancelLogin');
   const btnDoLogin = document.getElementById('btnDoLogin');
@@ -176,6 +177,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
   btnLogout?.addEventListener('click', logout);
+
+  initAuth();
 });
 
 
