@@ -630,6 +630,8 @@ function renderGolferDashboard(main) {
   const g0 = getLoggedGolfer();
   if (!g0) return;
 
+  const nextUpdate = g0.nextUpdate || 'TBD';
+
   // Ensure safe structure even if Supabase returns numbers instead of arrays
   const g = {
     ...g0,
