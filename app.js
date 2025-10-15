@@ -226,7 +226,7 @@ async function loadGolferFromDB(userId) {
   const { data, error } = await supabase
     .from('golfers')
     .select('*')
-    .eq('id', userId)
+    .eq('auth_id', userId)
     .single();
 
   if (error) {
@@ -1703,6 +1703,21 @@ function renderCoachProfile(main){
     <button class="btn" onclick="navTo('compare')">Back to Compare</button>
   `;
 }
+}
+
+function navTo(view) {
+  const main = document.querySelector('main');
+  if (!main) return console.warn('No <main> element found for navTo()');
+
+  if (view === 'dashboard') {
+    renderGolferDashboard(main);
+  } else if (view === 'compare') {
+    renderCompare(main);
+  } else if (view === 'profile') {
+    renderCoachProfile(main);
+  } else {
+    console.warn('Unknown navTo view:', view);
+  }
 }
 
 window.navTo = window.navTo || navTo;
