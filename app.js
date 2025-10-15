@@ -651,6 +651,8 @@ function renderGolferDashboard(main) {
     return;
   }
 
+  window.renderGolferDashboard = renderGolferDashboard;
+
   // Defensive defaults (so it won't crash if data missing)
   const sgData = Array.isArray(g.sg) ? g.sg : [];
   const physData = Array.isArray(g.phys) ? g.phys : [];
