@@ -83,11 +83,13 @@ async function fetchGolfersForCompare() {
 }
 
 
-
 // Supabase: simple init
 const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+// --- Auth wiring ---
+let session = null;
 
 // --- Auth wiring ---
 let session = null;
@@ -97,18 +99,31 @@ async function initAuth() {
   session = data?.session ?? null;
   updateAuthUI();
 
-  supabase.auth.onAuthStateChange((_event, sess) => {
+  // Try to load golfer immediately on startup if we have a session
+  if (session?.user?.id) {
+    await loadGolferFromDB(session.user.id);
+  }
+
+  supabase.auth.onAuthStateChange(async (_event, sess) => {
     session = sess;
     updateAuthUI();
-    if (session) {
-      // optional: reload current golfer view after login
-      if (typeof window.impersonate === 'function') {
-        // use linked golfer if you have it; otherwise fallback to latest
-        window.impersonate('golfer');
+
+    // Once a user logs in, reload the golfer data automatically
+    if (session?.user?.id) {
+      try {
+        await loadGolferFromDB(session.user.id);
+        console.log('✅ Golfer data loaded for user:', session.user.id);
+      } catch (err) {
+        console.error('❌ Failed to load golfer data:', err);
       }
+    } else {
+      console.warn('⚠ No valid user ID found in session.');
     }
   });
 }
+
+// Kick off auth on first load
+initAuth();
 
 function updateAuthUI() {
   document.getElementById('login-splash').style.display = 'none';
@@ -1702,21 +1717,23 @@ window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 // Auto-render golfer dashboard once DOM is ready and data loaded
 document.addEventListener('DOMContentLoaded', async () => {
   const main = document.querySelector('main');
-  if (!main) {
-    console.warn('No <main> element found.');
-    return;
-  }
+  if (!main) return console.warn('No <main> element found.');
 
-  // Wait for golfer data to load
   try {
-    const g = await loadGolferFromDB();
-    if (g) {
+    // Try to load golfer data
+    const g = await loadGolferFromDB?.();
+
+    // If golfer exists and has a valid ID, render dashboard
+    if (g && g.golferId) {
       renderGolferDashboard(main);
     } else {
-      console.warn('No golfer data loaded yet.');
+      console.warn('No golfer data loaded yet or golferId missing.');
+      main.innerHTML = `<div class="muted" style="padding:1em;text-align:center;">Loading golfer data…</div>`;
     }
   } catch (err) {
     console.error('Error loading golfer data:', err);
+    main.innerHTML = `<div class="muted" style="padding:1em;text-align:center;">Error loading data</div>`;
   }
 });
+
 
