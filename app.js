@@ -234,8 +234,7 @@ async function loadGolferFromDB(userId) {
   }
 
   console.log('Golfer data loaded:', data);
-  return data;
-}
+  
 
 
     // 1a) Optional reminder based on next_update (if column/data exists)
