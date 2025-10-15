@@ -1029,17 +1029,25 @@ function renderHiDetail(main){
     <button class="btn" onclick="navTo('dashboard')">Back</button>
   `;
 }
-function renderSgDetail(main){
+function renderSgDetail(main) {
   const g = getLoggedGolfer();
-  const rows = g.sg.map((s,i)=>`
-    <tr><td>${s.d}</td><td>${fmt(s.total)}</td><td>${fmt(s.tee)}</td><td>${fmt(s.approach)}</td><td>${fmt(s.short)}</td><td>${fmt(s.putting)}</td><td>${dBadge(delta(s.total,g.sg[i-1]?.total??null))}</td></tr>
-  `).join("");
+  const sgData = Array.isArray(g.sg) ? g.sg : [];
+
+  const rows = sgData.map((s, i) =>
+    `<tr><td>${i + 1}</td><td>${fmt(s.total)}</td><td>${fmt(s.tee)}</td><td>${fmt(s.approach)}</td></tr>`
+  ).join('');
+
   main.innerHTML = `
-    <h1>Strokes Gained – Detail</h1>
-    <div class="card">${spark(g.sg.map(s=>s.total),380,60,"spark")}<div class="muted">SG Total trend</div></div>
+    <h1>Strokes Gained | Detail</h1>
+    <div class="card">
+      ${spark(sgData.map(s => s.total), 380, 60, 'spark')}
+      <div class="muted">Strokes Gained chart</div>
+    </div>
     <div class="card">
       <table class="table">
-        <thead><tr><th>Date</th><th>Total</th><th>Tee</th><th>Approach</th><th>Short</th><th>Putting</th><th>Δ Total</th></tr></thead>
+        <thead>
+          <tr><th>#</th><th>Total</th><th>Tee</th><th>Approach</th></tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
