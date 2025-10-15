@@ -966,8 +966,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.renderEggButton = renderEggButton;
 });
 
-}
-
 // Show Easter Egg button if game is loaded
 if (window.renderEggButton) window.renderEggButton();
 // On first load, render the FAB and support a URL shortcut (#golf)
