@@ -1699,12 +1699,24 @@ function renderCoachProfile(main){
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
-// Auto-render golfer dashboard once DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Auto-render golfer dashboard once DOM is ready and data loaded
+document.addEventListener('DOMContentLoaded', async () => {
   const main = document.querySelector('main');
-  if (main) {
-    renderGolferDashboard(main);
-  } else {
+  if (!main) {
     console.warn('No <main> element found.');
+    return;
+  }
+
+  // Wait for golfer data to load
+  try {
+    const g = await loadGolferFromDB();
+    if (g) {
+      renderGolferDashboard(main);
+    } else {
+      console.warn('No golfer data loaded yet.');
+    }
+  } catch (err) {
+    console.error('Error loading golfer data:', err);
   }
 });
+
