@@ -216,28 +216,29 @@ window.setQuartersFrom = function setQuartersFrom(g) {
 // remember which sg_quarter schema worked: 'new' or 'legacy'
 window.__sgSchema = window.__sgSchema || null;
 
+async function loadGolferFromDB(userId) {
+  if (!userId) {
+    console.warn(`loadGolferFromDB: userId missing or invalid. Got:`, userId);
+    return null;
+  }
 
-// ==== REPLACE ENTIRE loadGolferFromDB WITH THIS ====
-window.loadGolferFromDB = async function loadGolferFromDB(userId) {
-  try {
-    // 0) Coerce to number for safety
-    const golferId = Number(userId);
-    if (!Number.isFinite(golferId)) {
-      console.warn('loadGolferFromDB: userId must be numeric golfer.id. Got:', userId);
-      return null;
-    }
+  console.log('Loading golfer from DB for userId:', userId);
 
-    // 1) Base golfer row (id, hi, dob, next_update)
-    const { data: base, error: baseErr } = await supabase
-      .from('golfers')
-      .select('id, hi, dob, next_update')
-      .eq('id', golferId)
-      .single();
+  const { data, error } = await supabase
+    .from('golfers')
+    .select('*')
+    .eq('id', userId)
+    .single();
 
-    if (baseErr || !base) {
-      console.warn('loadGolferFromDB: golfer not found', baseErr);
-      return null;
-    }
+  if (error) {
+    console.error('Error loading golfer:', error);
+    return null;
+  }
+
+  console.log('Golfer data loaded:', data);
+  return data;
+}
+
 
     // 1a) Optional reminder based on next_update (if column/data exists)
     if (base.next_update) {
