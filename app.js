@@ -263,7 +263,7 @@ async function loadGolferFromDB(userId) {
     const { data: sgRows, error: sgErr } = await supabase
       .from('sg_quarter')
       .select('d, total, tee, approach, short, putting')
-      .eq('golfer_id', golferId)
+      .eq('user_id', userId)
       .order('d', { ascending: true })
       .order('id', { ascending: true }); // tie-break
 
@@ -281,7 +281,7 @@ async function loadGolferFromDB(userId) {
     const { data: physRows, error: physErr } = await supabase
       .from('phys_quarter')
       .select('d, chs, ball, cmj, bj, height, weight')
-      .eq('golfer_id', golferId)
+      .eq('user_id', userId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
 
@@ -300,7 +300,7 @@ async function loadGolferFromDB(userId) {
     const { data: rateRows, error: rateErr } = await supabase
       .from('coach_ratings')
       .select('d, holing, short, wedge, flight, plan')
-      .eq('golfer_id', golferId)
+      .eq('user_id', userId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
 
@@ -318,7 +318,7 @@ async function loadGolferFromDB(userId) {
     const { data: attRows, error: attErr } = await supabase
       .from('attendance')
       .select('d, group_sess, one1')
-      .eq('golfer_id', golferId)
+      .eq('user_id', userId)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
 
@@ -340,13 +340,13 @@ async function loadGolferFromDB(userId) {
     }
 
     console.log('[loadGolferFromDB]', {
-      golferId, sg: sg.length, phys: phys.length, ratings: ratings.length, attendance: attendance.length
+      userId, sg: sg.length, phys: phys.length, ratings: ratings.length, attendance: attendance.length
     });
 
     return {
-      id: golferId,
-      name: 'Demo Golfer',
-      hi: +(base.hi ?? 0),
+      id: userId,
+      name: base.name ?? 'Demo Golfer',
+      hi: base.hi ?? 0,
       dob: base.dob ?? null,
       next_update: base.next_update ?? null,
       age, agePrecise,
@@ -607,17 +607,17 @@ const { data: latest, error: gErr } = await supabase
   .order('id', { ascending: false })
   .limit(1);
 
-const golferId = latest?.[0]?.id ?? null;
-if (!golferId) {
+const userId = latest?.[0]?.user_id ?? null;
+if (!userId) {
   console.warn('No golfers found in DB');
   return;
 }
 
-const g = await window.loadGolferFromDB(golferId);
+const g = await window.loadGolferFromDB(userId);
 
     state.currentGolfer = g;
     state.golfers = [g];
-    state.loggedGolferId = g?.id ?? null;
+    state.loggedGolferId = g?.user_id ?? null;
     window.setQuartersFrom(g);
     navTo("dashboard"); // render Golfer Dashboard
     return; // done
@@ -1745,10 +1745,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const g = await loadGolferFromDB?.();
 
     // If golfer exists and has a valid ID, render dashboard
-    if (g && g.golferId) {
+    if (g && g.user_id) {
       renderGolferDashboard(main);
     } else {
-      console.warn('No golfer data loaded yet or golferId missing.');
+      console.warn('No golfer data loaded yet or user_id missing.');
       main.innerHTML = `<div class="muted" style="padding:1em;text-align:center;">Loading golfer data…</div>`;
     }
   } catch (err) {
