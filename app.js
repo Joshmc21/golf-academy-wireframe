@@ -98,23 +98,26 @@ async function initAuth() {
   updateAuthUI();
 
   // 2️⃣ If already logged in, load golfer data now
-if (session?.user?.id) {
-  console.log('✅ Restored session for:', session.user.id);
-  const golfer = await loadGolferFromDB(session.user.id);
-  if (golfer) {
-    console.log('Rendering golfer dashboard for', golfer.name);
-    if (typeof renderGolferDashboard === 'function') {
-      renderGolferDashboard(golfer);
-    } else {
-      console.warn('renderGolferDashboard() not found.');
+  if (session?.user?.id) {
+    console.log('✅ Restored session for:', session.user.id);
+    const golfer = await loadGolferFromDB(session.user.id);
+    if (golfer) {
+      console.log('Rendering golfer dashboard for', golfer.name);
+      if (typeof renderGolferDashboard === 'function') {
+        renderGolferDashboard(golfer);
+      } else {
+        console.warn('renderGolferDashboard() not found.');
+      }
     }
   }
-}
 
   // 3️⃣ Listen for login/logout changes
   supabase.auth.onAuthStateChange(async (_event, sess) => {
     session = sess;
     updateAuthUI();
+    // ...
+  });
+}
 
     if (session?.user?.id) {
   console.log('✅ Logged in, loading golfer data for', session.user.id);
@@ -993,26 +996,18 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log('[toast]', t);
   }
 
-  // ====== Expose globally ======
+  // ===== Expose globally =====
   window.openChipAndPutt = openModal;
   window.renderEggButton = renderEggButton;
-});
 
-// Show Easter Egg button if game is loaded
-if (window.renderEggButton) window.renderEggButton();
-// On first load, render the FAB and support a URL shortcut (#golf)
-document.addEventListener('DOMContentLoaded', () => {
+  // ===== Show Easter Egg button if game is loaded =====
   if (window.renderEggButton) window.renderEggButton();
-  if (location.hash.replace('#','') === 'golf' && window.openChipAndPutt) {
-    window.openChipAndPutt();
-  }
-});
 
-// Mobile-friendly triggers: 5 logo taps OR long-press bottom-right hotspot
-document.addEventListener('DOMContentLoaded', () => {
+  // ===== Mobile-friendly triggers: 5 logo taps OR long-press bottom-right hotspot =====
+  document.addEventListener('DOMContentLoaded', () => {
     // Ensure FAB renders on first load + support deep link
-  if (window.renderEggButton) window.renderEggButton();
-  if (location.hash.replace('#','') === 'golf' && window.openChipAndPutt) window.openChipAndPutt();
+    if (window.renderEggButton) window.renderEggButton();
+  });
 
   // 5 taps on the logo within ~1.2s
   const logo = document.querySelector('.logo');
