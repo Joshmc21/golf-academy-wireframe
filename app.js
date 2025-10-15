@@ -223,7 +223,7 @@ async function loadGolferFromDB(userId) {
   try {
   console.log('Loading golfer from DB for userId:', userId);
   
-  const { data, error } = await supabase
+  const { data: base, error } = await supabase
     .from('golfers')
     .select('*')
     .eq('user_id', userId)
