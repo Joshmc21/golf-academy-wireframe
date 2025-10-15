@@ -98,7 +98,9 @@ async function initAuth() {
   updateAuthUI();
 
   // 2️⃣ If already logged in, load golfer data now
-  if (session?.user?.id) {
+  if (!session || !session.user?.id) {
+    console.warn('No user logged in yet — skipping data load.');
+  } else {
     console.log('✅ Restored session for:', session.user.id);
     await loadGolferFromDB(session.user.id);
   }
