@@ -238,7 +238,7 @@ async function loadGolferFromDB(userId) {
   const { data: base, error } = await supabase
     .from('golfers')
     .select('*')
-    .eq('user_id', userId)
+    .eq('user_id', data.id)
     .single();
 
   if (error) {
@@ -263,7 +263,7 @@ async function loadGolferFromDB(userId) {
     const { data: sgRows, error: sgErr } = await supabase
       .from('sg_quarter')
       .select('d, total, tee, approach, short, putting')
-      .eq('user_id', userId)
+      .eq('user_id', data.id)
       .order('d', { ascending: true })
       .order('id', { ascending: true }); // tie-break
 
@@ -281,7 +281,7 @@ async function loadGolferFromDB(userId) {
     const { data: physRows, error: physErr } = await supabase
       .from('phys_quarter')
       .select('d, chs, ball, cmj, bj, height, weight')
-      .eq('user_id', userId)
+      .eq('user_id', data.id)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
 
@@ -300,7 +300,7 @@ async function loadGolferFromDB(userId) {
     const { data: rateRows, error: rateErr } = await supabase
       .from('coach_ratings')
       .select('d, holing, short, wedge, flight, plan')
-      .eq('user_id', userId)
+      .eq('user_id', data.id)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
 
@@ -318,7 +318,7 @@ async function loadGolferFromDB(userId) {
     const { data: attRows, error: attErr } = await supabase
       .from('attendance')
       .select('d, group_sess, one1')
-      .eq('user_id', userId)
+      .eq('user_id', data.id)
       .order('d', { ascending: true })
       .order('id', { ascending: true });
 
