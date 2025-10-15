@@ -121,9 +121,6 @@ async function initAuth() {
   });
 }
 
-// Kick off auth once on page load
-initAuth();
-
 
 function updateAuthUI() {
   document.getElementById('login-splash').style.display = 'none';
