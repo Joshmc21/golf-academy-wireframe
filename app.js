@@ -1,3 +1,4 @@
+/* global loadGolferFromDB, navTo */
 document.getElementById('login-btn').addEventListener('click', async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'email' });
   if (error) console.error('Login error:', error);
@@ -956,6 +957,8 @@ document.addEventListener("DOMContentLoaded", () => {
   window.openChipAndPutt = openModal;
   window.renderEggButton = renderEggButton;
 });
+
+}
 
 // Show Easter Egg button if game is loaded
 if (window.renderEggButton) window.renderEggButton();
