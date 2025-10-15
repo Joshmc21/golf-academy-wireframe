@@ -98,12 +98,18 @@ async function initAuth() {
   updateAuthUI();
 
   // 2️⃣ If already logged in, load golfer data now
-  if (!session || !session.user?.id) {
-    console.warn('No user logged in yet — skipping data load.');
-  } else {
-    console.log('✅ Restored session for:', session.user.id);
-    await loadGolferFromDB(session.user.id);
+if (session?.user?.id) {
+  console.log('✅ Restored session for:', session.user.id);
+  const golfer = await loadGolferFromDB(session.user.id);
+  if (golfer) {
+    console.log('Rendering golfer dashboard for', golfer.name);
+    if (typeof renderGolferDashboard === 'function') {
+      renderGolferDashboard(golfer);
+    } else {
+      console.warn('renderGolferDashboard() not found.');
+    }
   }
+}
 
   // 3️⃣ Listen for login/logout changes
   supabase.auth.onAuthStateChange(async (_event, sess) => {
@@ -111,16 +117,20 @@ async function initAuth() {
     updateAuthUI();
 
     if (session?.user?.id) {
-      console.log('✅ Logged in, loading golfer data for', session.user.id);
-      try {
-        await loadGolferFromDB(session.user.id);
-      } catch (err) {
-        console.error('❌ Failed to load golfer data:', err);
+  console.log('✅ Logged in, loading golfer data for', session.user.id);
+  try {
+    const golfer = await loadGolferFromDB(session.user.id);
+    if (golfer) {
+      console.log('Rendering golfer dashboard for', golfer.name);
+      if (typeof renderGolferDashboard === 'function') {
+        renderGolferDashboard(golfer);
+      } else {
+        console.warn('renderGolferDashboard() not found.');
       }
-    } else {
-      console.warn('⚠️ No valid user ID found in session.');
     }
-  });
+  } catch (err) {
+    console.error('❌ Failed to load golfer data:', err);
+  }
 }
 
 function updateAuthUI() {
