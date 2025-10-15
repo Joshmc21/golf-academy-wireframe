@@ -219,9 +219,10 @@ async function loadGolferFromDB(userId) {
     console.warn(`loadGolferFromDB: userId missing or invalid. Got:`, userId);
     return null;
   }
-
+  
+  try {
   console.log('Loading golfer from DB for userId:', userId);
-
+  
   const { data, error } = await supabase
     .from('golfers')
     .select('*')
