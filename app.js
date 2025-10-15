@@ -211,8 +211,6 @@ window.setQuartersFrom = function setQuartersFrom(g) {
   }
 };
 
-
-
 // remember which sg_quarter schema worked: 'new' or 'legacy'
 window.__sgSchema = window.__sgSchema || null;
 
@@ -249,8 +247,8 @@ async function loadGolferFromDB(userId) {
       } else if (daysUntil <= 0) {
         alert('⚠️ Your update is overdue! Please refresh your Handicap Index.');
       }
-    };
-
+    }
+    ;
     // 2) SG (per quarter)
     const { data: sgRows, error: sgErr } = await supabase
       .from('sg_quarter')
