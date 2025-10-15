@@ -1703,6 +1703,7 @@ function renderCoachProfile(main){
     <button class="btn" onclick="navTo('compare')">Back to Compare</button>
   `;
 }
+}
 
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
@@ -1728,5 +1729,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     main.innerHTML = `<div class="muted" style="padding:1em;text-align:center;">Error loading data</div>`;
   }
 });
-
-
