@@ -626,13 +626,20 @@ const g = await window.loadGolferFromDB(golferId);
 };
 
 /* ======== Golfer views (same as before, wrapped in functions) ======== */
-function renderGolferDashboard(main){
-  const g = getLoggedGolfer();
-  const sgTotals = g.sg.map(s=>s.total);
-  const physBall = g.phys.map(p=>p.ball), physCHS = g.phys.map(p=>p.chs);
-  const ratingAvg = g.ratings.map(r=>avg([r.holing,r.short,r.wedge,r.flight,r.plan]));
-  const attSum = g.attendance.reduce((a,c)=>({group:a.group+c.group,one1:a.one1+c.one1}),{group:0,one1:0});
-  const nextUpdate = "2025-10-01";
+function renderGolferDashboard(main) {
+  const g0 = getLoggedGolfer();
+  if (!g0) return;
+
+  // Ensure safe structure even if Supabase returns numbers instead of arrays
+  const g = {
+    ...g0,
+    sg: Array.isArray(g0.sg) ? g0.sg : [],
+    phys: Array.isArray(g0.phys) ? g0.phys : [],
+    ratings: Array.isArray(g0.ratings) ? g0.ratings : [],
+    attendance: Array.isArray(g0.attendance) ? g0.attendance : []
+  };
+
+  // now all g.sg.map etc. below will safely work
 
   main.innerHTML = `
     <h1>Golfer Dashboard</h1>
