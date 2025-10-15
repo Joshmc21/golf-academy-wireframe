@@ -121,16 +121,27 @@ async function initAuth() {
   });
 }
 
-
 function updateAuthUI() {
-  document.getElementById('login-splash').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  const loggedIn = !!session;
+  const splash = document.getElementById('login-splash');
+  const main = document.getElementById('mainContent');
+  const loggedIn = !!session?.user?.id;
+
+  if (loggedIn) {
+    // Show the app content
+    splash.style.display = 'none';
+    main.style.display = 'block';
+  } else {
+    // Show login screen
+    splash.style.display = 'flex';   // or 'block' if you prefer
+    main.style.display = 'none';
+  }
+
   const btnShowLogin = document.getElementById('btnShowLogin');
   const btnLogout = document.getElementById('btnLogout');
   if (btnShowLogin) btnShowLogin.style.display = loggedIn ? 'none' : 'inline-block';
   if (btnLogout) btnLogout.style.display = loggedIn ? 'inline-block' : 'none';
 }
+
 
 // === LOGIN HANDLER ===
 document.getElementById('login-btn').addEventListener('click', async () => {
