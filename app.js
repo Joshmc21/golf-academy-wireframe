@@ -243,12 +243,12 @@ async function loadGolferFromDB(userId) {
       const nextUpdate = new Date(base.next_update);
       const daysUntil = Math.ceil((nextUpdate - new Date()) / (1000 * 60 * 60 * 24));
       if (daysUntil <= 7 && daysUntil > 0) {
-        alert(`⛳ Reminder: Your next update is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`);
+        alert(`⏰ Reminder: Your next update is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`);
       } else if (daysUntil <= 0) {
         alert('⚠️ Your update is overdue! Please refresh your Handicap Index.');
       }
-    }
-    ;
+    } // ✅ properly closes the "if (base.next_update)" block
+
     // 2) SG (per quarter)
     const { data: sgRows, error: sgErr } = await supabase
       .from('sg_quarter')
