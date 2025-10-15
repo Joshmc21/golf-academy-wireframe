@@ -91,9 +91,6 @@ const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 // --- Auth wiring ---
 let session = null;
 
-// --- Auth wiring ---
-let session = null;
-
 async function initAuth() {
   const { data } = await supabase.auth.getSession();
   session = data?.session ?? null;
