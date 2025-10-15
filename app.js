@@ -1684,3 +1684,13 @@ function renderCoachProfile(main){
 
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
+
+// Auto-render golfer dashboard once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const main = document.querySelector('main');
+  if (main) {
+    renderGolferDashboard(main);
+  } else {
+    console.warn('No <main> element found.');
+  }
+});
