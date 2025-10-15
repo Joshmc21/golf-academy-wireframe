@@ -249,7 +249,7 @@ async function loadGolferFromDB(userId) {
       } else if (daysUntil <= 0) {
         alert('⚠️ Your update is overdue! Please refresh your Handicap Index.');
       }
-    }
+    };
 
     // 2) SG (per quarter)
     const { data: sgRows, error: sgErr } = await supabase
