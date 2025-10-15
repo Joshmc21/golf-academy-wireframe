@@ -341,7 +341,7 @@ async function loadGolferFromDB(userId) {
       sg, phys, ratings, attendance,
     };
   } catch (error) {
-    console.error('loadGolferFromDB fatal:', e);
+    console.error('loadGolferFromDB fatal:', error);
     return null;
   }
 // ==== END REPLACEMENT ====
