@@ -88,6 +88,16 @@ const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+function renderGolferDashboard(main) {
+  // Safely get golfer object
+  const g = getLoggedGolfer();
+  if (!g || !main) {
+    console.warn("No golfer or main container found");
+    return;
+  }
+
+  window.renderGolferDashboard = renderGolferDashboard;
+
 // === Auth wiring ===
 let session = null;
 
@@ -642,16 +652,6 @@ const g = await window.loadGolferFromDB(userId);
 
   if (window.renderEggButton) window.renderEggButton();
 };
-
-function renderGolferDashboard(main) {
-  // Safely get golfer object
-  const g = getLoggedGolfer();
-  if (!g || !main) {
-    console.warn("No golfer or main container found");
-    return;
-  }
-
-  window.renderGolferDashboard = renderGolferDashboard;
 
   // Defensive defaults (so it won't crash if data missing)
   const sgData = Array.isArray(g.sg) ? g.sg : [];
