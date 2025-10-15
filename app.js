@@ -88,6 +88,17 @@ const supabaseUrl = "https://syecffopasrwkjonwvdk.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZWNmZm9wYXNyd2tqb253dmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDgzNTYsImV4cCI6MjA3MzUyNDM1Nn0.JYAD7NaPrZWxTa_V2-jwQI_Kh7p4GaSKFRv65G7Czqs";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+async function loadGolferFromDB(userId) {
+  if (!userId) {
+    console.warn(`loadGolferFromDB: userId missing or invalid. Got:`, userId);
+    return null;
+  }
+  
+  try {
+  console.log('Loading golfer from DB for userId:', userId);
+
+  window.loadGolferFromDB = loadGolferFromDB;
+
 function renderGolferDashboard(main) {
   // Safely get golfer object
   const g = getLoggedGolfer();
@@ -233,15 +244,6 @@ window.setQuartersFrom = function setQuartersFrom(g) {
 
 // remember which sg_quarter schema worked: 'new' or 'legacy'
 window.__sgSchema = window.__sgSchema || null;
-
-async function loadGolferFromDB(userId) {
-  if (!userId) {
-    console.warn(`loadGolferFromDB: userId missing or invalid. Got:`, userId);
-    return null;
-  }
-  
-  try {
-  console.log('Loading golfer from DB for userId:', userId);
   
   const { data: base, error } = await supabase
     .from('golfers')
