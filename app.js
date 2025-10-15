@@ -625,64 +625,63 @@ const g = await window.loadGolferFromDB(golferId);
   if (window.renderEggButton) window.renderEggButton();
 };
 
-/* ======== Golfer views (same as before, wrapped in functions) ======== */
 function renderGolferDashboard(main) {
-  const g0 = getLoggedGolfer();
-  if (!g0) return;
+  // Safely get golfer object
+  const g = getLoggedGolfer();
+  if (!g || !main) {
+    console.warn("No golfer or main container found");
+    return;
+  }
 
-  const nextUpdate = g0.nextUpdate || 'TBD';
+  // Defensive defaults (so it won't crash if data missing)
+  const sgData = Array.isArray(g.sg) ? g.sg : [];
+  const physData = Array.isArray(g.phys) ? g.phys : [];
+  const ratingData = Array.isArray(g.ratings) ? g.ratings : [];
+  const attendanceData = Array.isArray(g.attendance) ? g.attendance : [];
 
-  // Ensure safe structure even if Supabase returns numbers instead of arrays
-  const g = {
-    ...g0,
-    sg: Array.isArray(g0.sg) ? g0.sg : [],
-    phys: Array.isArray(g0.phys) ? g0.phys : [],
-    ratings: Array.isArray(g0.ratings) ? g0.ratings : [],
-    attendance: Array.isArray(g0.attendance) ? g0.attendance : []
-  };
+  // Optional values with fallbacks
+  const sgTotals = sgData.map(s => s.total || 0);
+  const nextUpdate = g.nextUpdate || "TBD";
+  const golferName = g.name ? g.name.split(" ")[0] : "Golfer";
 
-  // now all g.sg.map etc. below will safely work
-
+  // Build HTML
   main.innerHTML = `
     <h1>Golfer Dashboard</h1>
-    <div class="card"><strong>Welcome, ${g.name.split(" ")[0]}.</strong> Next required update: <b>${nextUpdate}</b>.</div>
+    <div class="card">
+      <strong>Welcome, ${golferName}</strong><br>
+      Next required update: <b>${nextUpdate}</b>
+    </div>
+
     <div class="grid grid-3">
       <div class="card" onclick="navTo('hi-detail')" style="cursor:pointer" title="Handicap detail">
-        <div class="kpi">${fmt(g.hi)} <span class="muted">HI</span></div>
-        <div class="muted">Handicap Index – click for detail</div>
+        <div class="kpi">${fmt(g.hi || 0)}</div>
+        <div class="muted">Handicap Index – Click for detail</div>
       </div>
+
       <div class="card" onclick="navTo('sg-detail')" style="cursor:pointer" title="SG details">
         <div class="sparkwrap">
-          ${spark(sgTotals,200,48,"spark")}
-          <div><div class="kpi">${fmt(last(sgTotals))}</div><div class="muted">SG Total (last 4) – click</div></div>
+          ${spark(sgTotals, 280, 48, "spark")}
         </div>
+        <div class="muted">SG Total (last ${sgTotals.length || 0}) – Click</div>
       </div>
+
       <div class="card" onclick="navTo('physical-detail')" style="cursor:pointer" title="Physical details">
-        <div class="sparkwrap">
-          ${spark(physBall,200,48,"spark")}
-          ${spark(physCHS,200,48,"spark2")}
-          <div><div class="kpi">${fmt(last(physBall))} <span class="muted">mph</span></div><div class="muted">Ball Speed / CHS – click</div></div>
-        </div>
+        <div class="kpi">${fmt(physData.length || 0)}</div>
+        <div class="muted">Physical metrics – Click</div>
       </div>
-      <div class="card" onclick="navTo('coach-ratings-detail')" style="cursor:pointer" title="Coach ratings details">
-        <div class="sparkwrap">
-          ${spark(ratingAvg,200,48,"spark")}
-          <div><div class="kpi">${fmt(last(ratingAvg))}</div><div class="muted">Coach Rating (avg) – click</div></div>
-        </div>
+
+      <div class="card" onclick="navTo('coach-ratings-detail')" style="cursor:pointer" title="Coach ratings">
+        <div class="kpi">${fmt(ratingData.length || 0)}</div>
+        <div class="muted">Coach ratings – Click</div>
       </div>
-      <div class="card" onclick="navTo('attendance-detail')" style="cursor:pointer" title="Attendance details">
-        <div class="kpi">${attSum.group}/${attSum.one1}</div>
-        <div class="muted">Attendance (Group / 1:1) – click</div>
-      </div>
-      <div class="card">
-        <h3>Quick Links</h3>
-        <div class="grid grid-2">
-          <button class="btn" onclick="navTo('my-profile')">My Profile</button>
-          <button class="btn" onclick="navTo('sg-detail')">SG Detail</button>
-        </div>
+
+      <div class="card" onclick="navTo('attendance-detail')" style="cursor:pointer" title="Attendance">
+        <div class="kpi">${fmt(attendanceData.length || 0)}</div>
+        <div class="muted">Attendance records – Click</div>
       </div>
     </div>
   `;
+}
   
   /* ==================== Easter Egg: Chip & Putt (Canvas) ==================== */
 document.addEventListener("DOMContentLoaded", () => {
