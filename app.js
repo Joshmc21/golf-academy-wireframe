@@ -215,6 +215,7 @@ async function initAuth() {
       if (golfer) renderGolferDashboard(golfer);
     }
   });
+}
 
 function updateAuthUI() {
   const splash = document.getElementById('login-splash');
