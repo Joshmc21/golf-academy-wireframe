@@ -258,31 +258,34 @@ function showLoginSheet(show) {
 }
 
 // Hook up buttons (after DOM ready)
-window.addEventListener('DOMContentLoaded', () => {
-  const btnShowLogin = document.getElementById('btnShowLogin');
-  const btnCancelLogin = document.getElementById('btnCancelLogin');
-  const btnDoLogin = document.getElementById('btnDoLogin');
-  const btnLogout = document.getElementById('btnLogout');
+btnDoLogin.addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  const msg = document.getElementById('loginMsg');
 
-  btnShowLogin?.addEventListener('click', () => showLoginSheet(true));
-  btnCancelLogin?.addEventListener('click', () => showLoginSheet(false));
-  btnDoLogin?.addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass = document.getElementById('loginPass').value;
-    const msg = document.getElementById('loginMsg');
-    msg.textContent = '';
-    try {
-      await loginWithEmail(email, pass);
-      showLoginSheet(false);
-    } catch (e) {
-      msg.textContent = e.message || 'Login failed';
-    }
-  });
-  btnLogout?.addEventListener('click', logout);
+  msg.textContent = '';
 
-  initAuth();
+  try {
+    // ✅ Correct Supabase email+password login
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+
+    if (error) throw error;
+
+    console.log('✅ Logged in:', data.user);
+    msg.textContent = 'Login successful!';
+
+    showLoginSheet(false);
+  } catch (e) {
+    console.error('❌ Login failed:', e);
+    msg.textContent = e.message || 'Login failed';
+  }
 });
 
+btnLogout?.addEventListener('click', logout);
+initAuth();
 
 // Quick test helper you can run in the browser console
 window.testSupabase = async () => {
