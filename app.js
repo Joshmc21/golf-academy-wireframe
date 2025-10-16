@@ -243,13 +243,17 @@ function updateAuthUI() {
 
 // === LOGIN HANDLER ===
 document.getElementById('login-btn').addEventListener('click', async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'email' });
+  const { data, error } = await supabase.auth.signIn({ provider: 'email' });
   if (error) console.error('Login error:', error);
 });
 
 async function loginWithEmail(email, password) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
   if (error) throw error;
+  return data.user;
 }
 
 async function logout() {
@@ -261,35 +265,31 @@ function showLoginSheet(show) {
   if (el) el.style.display = show ? 'flex' : 'none';
 }
 
-// Hook up buttons (after DOM ready)
-btnDoLogin.addEventListener('click', async () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
+// === Hook up buttons (after DOM ready) ===
+document.addEventListener('DOMContentLoaded', () => {
+  const btnDoLogin = document.getElementById('btnDoLogin');
+  const btnLogout = document.getElementById('btnLogout');
   const msg = document.getElementById('loginMsg');
 
-  msg.textContent = '';
+  btnDoLogin.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    msg.textContent = '';
 
-  try {
-    // ✅ Correct Supabase email+password login
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: pass,
-    });
+    try {
+      const user = await loginWithEmail(email, pass);
+      console.log('✅ Logged in:', user.email);
+      msg.textContent = 'Login successful!';
+      showLoginSheet(false);
+    } catch (e) {
+      console.error('❌ Login failed:', e);
+      msg.textContent = e.message || 'Login failed';
+    }
+  });
 
-    if (error) throw error;
-
-    console.log('✅ Logged in:', data.user);
-    msg.textContent = 'Login successful!';
-
-    showLoginSheet(false);
-  } catch (e) {
-    console.error('❌ Login failed:', e);
-    msg.textContent = e.message || 'Login failed';
-  }
+  btnLogout.addEventListener('click', logout);
 });
 
-const btnLogout = document.getElementById('btnLogout');
-btnLogout.addEventListener('click', logout);
 initAuth();
 
 // Quick test helper you can run in the browser console
