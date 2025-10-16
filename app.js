@@ -1624,25 +1624,3 @@ function navTo(view) {
 
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
-
-// Auto-render golfer dashboard once DOM is ready and data loaded
-document.addEventListener('DOMContentLoaded', async () => {
-  const main = document.querySelector('main');
-  if (!main) return console.warn('No <main> element found.');
-
-  try {
-    // Try to load golfer data
-    const g = await loadGolferFromDB?.();
-
-    // If golfer exists and has a valid ID, render dashboard
-    if (g && g.user_id) {
-      renderGolferDashboard(main);
-    } else {
-      console.warn('No golfer data loaded yet or user_id missing.');
-      main.innerHTML = `<div class="muted" style="padding:1em;text-align:center;">Loading golfer data…</div>`;
-    }
-  } catch (err) {
-    console.error('Error loading golfer data:', err);
-    main.innerHTML = `<div class="muted" style="padding:1em;text-align:center;">Error loading data</div>`;
-  }
-});
