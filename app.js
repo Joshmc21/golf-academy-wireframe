@@ -93,11 +93,35 @@ async function loadGolferFromDB(userId) {
     console.warn(`loadGolferFromDB: userId missing or invalid. Got:`, userId);
     return null;
   }
-  
-  try {
-  console.log('Loading golfer from DB for userId:', userId);
 
-  window.loadGolferFromDB = loadGolferFromDB;
+  try {
+    console.log('Loading golfer from DB for userId:', userId);
+
+    const { data: base, error } = await supabase
+      .from('golfers')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error loading golfer:', error);
+      return null;
+    }
+
+    console.log('Golfer data loaded:', base);
+
+    // You can return the golfer data here,
+    // or expand this section if you need to fetch other tables.
+    return base;
+
+  } catch (err) {
+    console.error('loadGolferFromDB fatal:', err);
+    return null;
+  }
+}
+
+// ✅ define globally *after* the function closes
+window.loadGolferFromDB = loadGolferFromDB;
 
 function renderGolferDashboard(main) {
   // Safely get golfer object
@@ -106,6 +130,7 @@ function renderGolferDashboard(main) {
     console.warn("No golfer or main container found");
     return;
   }
+}
 
   window.renderGolferDashboard = renderGolferDashboard;
 
