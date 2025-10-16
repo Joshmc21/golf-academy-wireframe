@@ -130,7 +130,56 @@ function renderGolferDashboard(main) {
     console.warn("No golfer or main container found");
     return;
   }
-}
+
+  // Defensive defaults (so it won't crash if data missing)
+  const sgData = Array.isArray(g.sg) ? g.sg : [];
+  const physData = Array.isArray(g.phys) ? g.phys : [];
+  const ratingData = Array.isArray(g.ratings) ? g.ratings : [];
+  const attendanceData = Array.isArray(g.attendance) ? g.attendance : [];
+
+  // Optional values with fallbacks
+  const sgTotals = sgData.map(s => s.total || 0);
+  const nextUpdate = g.nextUpdate || "TBD";
+  const golferName = g.name ? g.name.split(" ")[0] : "Golfer";
+
+  // Build HTML
+  main.innerHTML = `
+    <h1>Golfer Dashboard</h1>
+    <div class="card">
+      <strong>Welcome, ${golferName}</strong><br>
+      Next required update: <b>${nextUpdate}</b>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card" onclick="navTo('hi-detail')" style="cursor:pointer" title="Handicap detail">
+        <div class="kpi">${fmt(g.hi || 0)}</div>
+        <div class="muted">Handicap Index – Click for detail</div>
+      </div>
+
+      <div class="card" onclick="navTo('sg-detail')" style="cursor:pointer" title="SG details">
+        <div class="sparkwrap">
+          ${spark(sgTotals, 280, 48, "spark")}
+        </div>
+        <div class="muted">SG Total (last ${sgTotals.length || 0}) – Click</div>
+      </div>
+
+      <div class="card" onclick="navTo('physical-detail')" style="cursor:pointer" title="Physical details">
+        <div class="kpi">${fmt(physData.length || 0)}</div>
+        <div class="muted">Physical metrics – Click</div>
+      </div>
+
+      <div class="card" onclick="navTo('coach-ratings-detail')" style="cursor:pointer" title="Coach ratings">
+        <div class="kpi">${fmt(ratingData.length || 0)}</div>
+        <div class="muted">Coach ratings – Click</div>
+      </div>
+
+      <div class="card" onclick="navTo('attendance-detail')" style="cursor:pointer" title="Attendance">
+        <div class="kpi">${fmt(attendanceData.length || 0)}</div>
+        <div class="muted">Attendance records – Click</div>
+      </div>
+    </div>
+    `;
+  }
 
   window.renderGolferDashboard = renderGolferDashboard;
 
@@ -552,56 +601,6 @@ const g = await window.loadGolferFromDB(userId);
 
   if (window.renderEggButton) window.renderEggButton();
 };
-
-  // Defensive defaults (so it won't crash if data missing)
-  const sgData = Array.isArray(g.sg) ? g.sg : [];
-  const physData = Array.isArray(g.phys) ? g.phys : [];
-  const ratingData = Array.isArray(g.ratings) ? g.ratings : [];
-  const attendanceData = Array.isArray(g.attendance) ? g.attendance : [];
-
-  // Optional values with fallbacks
-  const sgTotals = sgData.map(s => s.total || 0);
-  const nextUpdate = g.nextUpdate || "TBD";
-  const golferName = g.name ? g.name.split(" ")[0] : "Golfer";
-
-  // Build HTML
-  main.innerHTML = `
-    <h1>Golfer Dashboard</h1>
-    <div class="card">
-      <strong>Welcome, ${golferName}</strong><br>
-      Next required update: <b>${nextUpdate}</b>
-    </div>
-
-    <div class="grid grid-3">
-      <div class="card" onclick="navTo('hi-detail')" style="cursor:pointer" title="Handicap detail">
-        <div class="kpi">${fmt(g.hi || 0)}</div>
-        <div class="muted">Handicap Index – Click for detail</div>
-      </div>
-
-      <div class="card" onclick="navTo('sg-detail')" style="cursor:pointer" title="SG details">
-        <div class="sparkwrap">
-          ${spark(sgTotals, 280, 48, "spark")}
-        </div>
-        <div class="muted">SG Total (last ${sgTotals.length || 0}) – Click</div>
-      </div>
-
-      <div class="card" onclick="navTo('physical-detail')" style="cursor:pointer" title="Physical details">
-        <div class="kpi">${fmt(physData.length || 0)}</div>
-        <div class="muted">Physical metrics – Click</div>
-      </div>
-
-      <div class="card" onclick="navTo('coach-ratings-detail')" style="cursor:pointer" title="Coach ratings">
-        <div class="kpi">${fmt(ratingData.length || 0)}</div>
-        <div class="muted">Coach ratings – Click</div>
-      </div>
-
-      <div class="card" onclick="navTo('attendance-detail')" style="cursor:pointer" title="Attendance">
-        <div class="kpi">${fmt(attendanceData.length || 0)}</div>
-        <div class="muted">Attendance records – Click</div>
-      </div>
-    </div>
-  `;
-}
   
   /* ==================== Easter Egg: Chip & Putt (Canvas) ==================== */
 document.addEventListener("DOMContentLoaded", () => {
@@ -1606,7 +1605,6 @@ function renderCoachProfile(main){
     <div class="card"><h2>Attendance</h2><table class="table"><thead><tr><th>Date</th><th>Group</th><th>1:1</th></tr></thead><tbody>${attRows}</tbody></table></div>
     <button class="btn" onclick="navTo('compare')">Back to Compare</button>
   `;
-}
 }
 
 function navTo(view) {
