@@ -207,11 +207,14 @@ async function initAuth() {
 
   // 3️⃣ Listen for login/logout changes
   supabase.auth.onAuthStateChange(async (_event, sess) => {
-    session = sess;
+    session = sess?.session ?? sess;  // works for both older/newer clients
     updateAuthUI();
-    // ...
+
+    if (session?.user?.id) {
+      const golfer = await loadGolferFromDB(session.user.id);
+      if (golfer) renderGolferDashboard(golfer);
+    }
   });
-}
 
 function updateAuthUI() {
   const splash = document.getElementById('login-splash');
@@ -219,8 +222,10 @@ function updateAuthUI() {
   const btnShowLogin = document.getElementById('btnShowLogin');
   const btnLogout = document.getElementById('btnLogout');
 
+  const loggedIn = !!session?.user;
+
   // show splash until we have confirmed login state
-  if (!session) {
+  if (!loggedIn) {
     console.log('🔒 No session yet — showing splash');
     if (splash) splash.style.display = 'flex';
     if (mainContent) mainContent.style.display = 'none';
@@ -229,8 +234,7 @@ function updateAuthUI() {
     if (splash) splash.style.display = 'none';
     if (mainContent) mainContent.style.display = 'block';
   }
-
-  const loggedIn = !!session?.user;
+  
   if (btnShowLogin) btnShowLogin.style.display = loggedIn ? 'none' : 'inline-block';
   if (btnLogout) btnLogout.style.display = loggedIn ? 'inline-block' : 'none';
 }
@@ -283,7 +287,8 @@ btnDoLogin.addEventListener('click', async () => {
   }
 });
 
-btnLogout?.addEventListener('click', logout);
+const btnLogout = document.getElementById('btnLogout');
+btnLogout.addEventListener('click', logout);
 initAuth();
 
 // Quick test helper you can run in the browser console
