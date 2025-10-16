@@ -243,7 +243,7 @@ function updateAuthUI() {
 
 // === LOGIN HANDLER ===
 document.getElementById('login-btn').addEventListener('click', async () => {
-  const { data, error } = await supabase.auth.signIn({ provider: 'email' });
+  const { data, error } = await supabase.auth.signInWithPassword({ provider: 'email' });
   if (error) console.error('Login error:', error);
 });
 
@@ -288,9 +288,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnLogout.addEventListener('click', logout);
+
+  initAuth();
 });
 
-initAuth();
+
 
 // Quick test helper you can run in the browser console
 window.testSupabase = async () => {
