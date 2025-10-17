@@ -1634,9 +1634,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Try attaching every 500ms until the splash button is ready
   const attachLoginButton = () => {
-    const btnShowLogin = document.getElementById('btnShowLogin');
+    const btnShowLogin = document.getElementById('login-btn');
     if (btnShowLogin) {
-      console.log('✅ Found login button, attaching listener');
       btnShowLogin.addEventListener('click', () => {
         console.log('✅ Login button clicked — showing login sheet');
         showLoginSheet(true);
