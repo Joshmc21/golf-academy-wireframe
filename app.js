@@ -1,5 +1,5 @@
 document.getElementById('login-btn').addEventListener('click', async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'email' });
+  const { data, error } = await supabase.auth.signInWithPassword({ provider: 'email' });
   if (error) {
     console.error('Login error:', error);
     const msg = document.getElementById('loginMsg');
