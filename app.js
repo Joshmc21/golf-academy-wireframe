@@ -251,28 +251,10 @@ function updateAuthUI() {
 }
 
 
-// === LOGIN HANDLER ===
-document.getElementById('login-btn').addEventListener('click', async () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPass').value.trim();
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error('Login error:', error);
-    return;
-  }
-
-  console.log('✅ Logged in as:', data.user.email);
-});
-
 async function loginWithEmail(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
-    password,
+    password: pass,
   });
   if (error) throw error;
   return data.user;
