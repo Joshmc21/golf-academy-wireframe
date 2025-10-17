@@ -254,7 +254,7 @@ function updateAuthUI() {
 async function loginWithEmail(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
-    password: pass,
+    password,
   });
   if (error) throw error;
   return data.user;
