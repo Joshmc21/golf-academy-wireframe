@@ -1,6 +1,10 @@
-// ✅ Replace with this
-document.getElementById('login-btn').addEventListener('click', () => {
-  showLoginSheet(true);
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'email' });
+  if (error) {
+    console.error('Login error:', error);
+    const msg = document.getElementById('loginMsg');
+    if (msg) msg.textContent = error.message;
+  }
 });
 
 // --- helpers used by Compare view ---
@@ -123,12 +127,14 @@ async function loadGolferFromDB(userId) {
 window.loadGolferFromDB = loadGolferFromDB;
 
 function renderGolferDashboard(main) {
-  // Safely get golfer object
   const g = getLoggedGolfer();
   if (!g || !main) {
     console.warn("No golfer or main container found");
     return;
   }
+
+  // 🛡️ Prevent double render
+  if (main.children.length > 0) return;
 
   // Defensive defaults (so it won't crash if data missing)
   const sgData = Array.isArray(g.sg) ? g.sg : [];
@@ -196,23 +202,27 @@ async function initAuth() {
     console.log('✅ Restored session for:', session.user.id);
     const golfer = await loadGolferFromDB(session.user.id);
     if (golfer) {
-      console.log('Rendering golfer dashboard for', golfer.name);
-      if (typeof renderGolferDashboard === 'function') {
-        renderGolferDashboard(golfer);
-      } else {
-        console.warn('renderGolferDashboard() not found.');
-      }
+      window.loggedGolfer = golfer; // keep global reference
+      const main = document.querySelector('main');
+      if (main) renderGolferDashboard(main);
     }
   }
 
   // 3️⃣ Listen for login/logout changes
   supabase.auth.onAuthStateChange(async (_event, sess) => {
-    session = sess?.session ?? sess;  // works for both older/newer clients
+    session = sess?.session ?? sess; // normalize
     updateAuthUI();
 
     if (session?.user?.id) {
+      console.log('✅ Logged in, loading golfer data for', session.user.id);
       const golfer = await loadGolferFromDB(session.user.id);
-      if (golfer) renderGolferDashboard(golfer);
+      if (golfer) {
+        window.loggedGolfer = golfer;
+        const main = document.querySelector('main');
+        if (main) renderGolferDashboard(main);
+      }
+    } else {
+      console.warn('⚠️ No valid user ID found in session.');
     }
   });
 }
@@ -300,8 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnLogout.addEventListener('click', logout);
-
-  initAuth();
 });
 
 
@@ -1646,3 +1654,6 @@ function navTo(view) {
 
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
+
+// ✅ Start auth only after DOM is ready
+window.addEventListener('DOMContentLoaded', initAuth);
