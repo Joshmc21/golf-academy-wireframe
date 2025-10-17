@@ -1630,3 +1630,14 @@ window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
 // ✅ Start auth only after DOM is ready
 window.addEventListener('DOMContentLoaded', initAuth);
+
+// === Show Login Sheet Handler ===
+document.addEventListener('DOMContentLoaded', () => {
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  if (btnShowLogin) {
+    btnShowLogin.addEventListener('click', () => {
+      console.log('✅ Login button clicked — showing login sheet');
+      showLoginSheet(true);
+    });
+  }
+});
