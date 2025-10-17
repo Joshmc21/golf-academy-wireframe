@@ -1628,23 +1628,20 @@ function navTo(view) {
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
+// === Show Login Sheet Handler ===
 window.addEventListener('DOMContentLoaded', () => {
-  // Run auth init
+  // Run auth init after DOM ready
   initAuth();
 
-  // Try attaching every 500ms until the splash button is ready
-  const attachLoginButton = () => {
-    const btnShowLogin = document.getElementById('login-btn');
-    if (btnShowLogin) {
-      btnShowLogin.addEventListener('click', () => {
-        console.log('✅ Login button clicked — showing login sheet');
-        showLoginSheet(true);
-      });
-    } else {
-      console.log('⏳ Login button not ready yet, retrying...');
-      setTimeout(attachLoginButton, 500);
-    }
-  };
-
-  attachLoginButton();
+  // Attach click handler directly once DOM exists
+  const btnShowLogin = document.getElementById('login-btn');
+  if (btnShowLogin) {
+    console.log('✅ Found login button, attaching listener');
+    btnShowLogin.addEventListener('click', () => {
+      console.log('✅ Login button clicked — showing login sheet');
+      showLoginSheet(true);
+    });
+  } else {
+    console.error('❌ Could not find #login-btn in DOM');
+  }
 });
