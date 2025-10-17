@@ -1628,18 +1628,24 @@ function navTo(view) {
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
-// ✅ Single DOMContentLoaded handler for init + login button
 window.addEventListener('DOMContentLoaded', () => {
   // Run auth init
   initAuth();
 
-  // Hook up "Login to Continue" button
-  const btnShowLogin = document.getElementById('btnShowLogin');
-  if (btnShowLogin) {
-    btnShowLogin.addEventListener('click', () => {
-      console.log('✅ Login button clicked — showing login sheet');
-      showLoginSheet(true);
-    });
-  }
-});
+  // Try attaching every 500ms until the splash button is ready
+  const attachLoginButton = () => {
+    const btnShowLogin = document.getElementById('btnShowLogin');
+    if (btnShowLogin) {
+      console.log('✅ Found login button, attaching listener');
+      btnShowLogin.addEventListener('click', () => {
+        console.log('✅ Login button clicked — showing login sheet');
+        showLoginSheet(true);
+      });
+    } else {
+      console.log('⏳ Login button not ready yet, retrying...');
+      setTimeout(attachLoginButton, 500);
+    }
+  };
 
+  attachLoginButton();
+});
