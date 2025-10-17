@@ -1628,11 +1628,12 @@ function navTo(view) {
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
-// ✅ Start auth only after DOM is ready
-window.addEventListener('DOMContentLoaded', initAuth);
+// ✅ Single DOMContentLoaded handler for init + login button
+window.addEventListener('DOMContentLoaded', () => {
+  // Run auth init
+  initAuth();
 
-// === Show Login Sheet Handler ===
-document.addEventListener('DOMContentLoaded', () => {
+  // Hook up "Login to Continue" button
   const btnShowLogin = document.getElementById('btnShowLogin');
   if (btnShowLogin) {
     btnShowLogin.addEventListener('click', () => {
@@ -1641,3 +1642,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
