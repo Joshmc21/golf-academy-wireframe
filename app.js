@@ -1,12 +1,3 @@
-document.getElementById('login-btn').addEventListener('click', async () => {
-  const { data, error } = await supabase.auth.signInWithPassword({ provider: 'email' });
-  if (error) {
-    console.error('Login error:', error);
-    const msg = document.getElementById('loginMsg');
-    if (msg) msg.textContent = error.message;
-  }
-});
-
 // --- helpers used by Compare view ---
 function calcAgeFromDOB(dobStr) {
   if (!dobStr) return null;
