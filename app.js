@@ -1668,3 +1668,65 @@ window.addEventListener('DOMContentLoaded', () => {
   // Initialize authentication
   initAuth();
 });
+
+// ===== DEBUG LOGGING FOR LOGIN FLOW =====
+console.log('✅ Debug mode: login flow tracing active');
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🧠 DOM fully loaded — starting debug trace');
+
+  // Check key elements exist
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  const loginSheet = document.getElementById('loginSheet');
+  const btnDoLogin = document.getElementById('btnDoLogin');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPass = document.getElementById('loginPass');
+  const msg = document.getElementById('loginMsg');
+
+  console.log('🎯 Elements found:', {
+    btnShowLogin: !!btnShowLogin,
+    loginSheet: !!loginSheet,
+    btnDoLogin: !!btnDoLogin,
+    loginEmail: !!loginEmail,
+    loginPass: !!loginPass,
+    msg: !!msg,
+  });
+
+  if (!btnShowLogin) {
+    console.warn('❌ btnShowLogin NOT found in DOM!');
+  } else {
+    btnShowLogin.addEventListener('click', () => {
+      console.log('🟢 btnShowLogin clicked → attempting to show login sheet');
+      if (typeof showLoginSheet !== 'function') {
+        console.error('❌ showLoginSheet function missing or not callable');
+      } else {
+        showLoginSheet(true);
+        console.log('✅ showLoginSheet(true) called successfully');
+      }
+    });
+  }
+
+  if (btnDoLogin) {
+    btnDoLogin.addEventListener('click', async () => {
+      console.log('🟣 btnDoLogin clicked → starting login attempt');
+      const email = loginEmail?.value?.trim();
+      const pass = loginPass?.value;
+      console.log('📧 Entered:', { email, passLength: pass?.length || 0 });
+
+      if (!email || !pass) {
+        console.warn('⚠️ Email or password missing');
+        return;
+      }
+
+      try {
+        const user = await loginWithEmail(email, pass);
+        console.log('✅ Login success:', user);
+      } catch (err) {
+        console.error('❌ Login failed:', err);
+      }
+    });
+  } else {
+    console.warn('❌ btnDoLogin not found — cannot attach handler');
+  }
+});
+
