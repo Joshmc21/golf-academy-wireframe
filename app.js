@@ -1612,122 +1612,67 @@ function navTo(view) {
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
-// === Hook up login/logout buttons once DOM is ready ===
-window.addEventListener('DOMContentLoaded', () => {
-  const btnShowLogin = document.getElementById('btnShowLogin');
-  const btnCancelLogin = document.getElementById('btnCancelLogin');
+// === LOGIN HANDLERS ===
+document.addEventListener("DOMContentLoaded", () => {
+  const splash = document.getElementById('login-splash');
+  const sheet = document.getElementById('loginSheet');
+  const btnShow = document.getElementById('btnShowLogin');
+  const btnCancel = document.getElementById('btnCancelLogin');
   const btnDoLogin = document.getElementById('btnDoLogin');
-  const btnLogout = document.getElementById('btnLogout');
+  const appContainer = document.getElementById('appContainer');
 
-  // Show login sheet from splash
-  btnShowLogin?.addEventListener('click', () => showLoginSheet(true));
+  // Show login modal
+  if (btnShow) btnShow.addEventListener('click', () => {
+    sheet.classList.add('show');
+    splash.classList.add('fade-out');
+    setTimeout(() => splash.style.display = 'none', 600);
+  });
 
-  // Close login sheet
-  btnCancelLogin?.addEventListener('click', () => showLoginSheet(false));
+  // Cancel login modal
+  if (btnCancel) btnCancel.addEventListener('click', () => {
+    sheet.classList.remove('show');
+  });
 
-  // Handle login
-  btnDoLogin.addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail')?.value.trim();
-    const pass = document.getElementById('loginPass')?.value;
+  // Perform login
+  if (btnDoLogin) btnDoLogin.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
     const msg = document.getElementById('loginMsg');
     msg.textContent = '';
 
     if (!email || !pass) {
-      msg.textContent = '⚠️ Please enter both email and password';
+      msg.textContent = 'Please enter both email and password.';
       return;
     }
 
     try {
-      const user = await loginWithEmail(email, pass);
-      console.log('✅ Logged in as:', user.email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass
+      });
 
-      // Load golfer from DB
-      const golfer = await loadGolferFromDB(user.id);
-      if (!golfer) {
-        msg.textContent = '⚠️ No golfer profile found for this user.';
-        console.warn('No golfer found for userId:', user.id);
-        return;
+      if (error) throw error;
+      console.log('✅ Logged in as:', data.user.email);
+
+      // Hide login overlay and show app
+      sheet.classList.remove('show');
+      splash.remove();
+      appContainer.style.display = 'block';
+      setTimeout(() => (appContainer.style.opacity = '1'), 50);
+
+      // Load user data
+      if (data.user?.id && typeof loadGolferFromDB === 'function') {
+        const golfer = await loadGolferFromDB(data.user.id);
+        if (golfer && typeof renderGolferDashboard === 'function') {
+          renderGolferDashboard(golfer);
+        }
       }
-
-      // Show main app and render dashboard
-      showLoginSheet(false);
-      document.getElementById('login-splash').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      const main = document.querySelector('main');
-      renderGolferDashboard(main);
-
-      msg.textContent = '✅ Login successful!';
-    } catch (e) {
-      console.error('❌ Login failed:', e);
-      msg.textContent = e.message || '❌ Login failed.';
+    } catch (err) {
+      console.error('❌ Login failed:', err);
+      msg.textContent = err.message || 'Login failed. Please try again.';
     }
   });
-
-  // Logout handler
-  btnLogout?.addEventListener('click', logout);
-
-  // Initialize authentication
-  initAuth();
 });
 
-// ===== DEBUG LOGGING FOR LOGIN FLOW =====
-console.log('✅ Debug mode: login flow tracing active');
-
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🧠 DOM fully loaded — starting debug trace');
-
-  // Check key elements exist
-  const btnShowLogin = document.getElementById('btnShowLogin');
-  const loginSheet = document.getElementById('loginSheet');
-  const btnDoLogin = document.getElementById('btnDoLogin');
-  const loginEmail = document.getElementById('loginEmail');
-  const loginPass = document.getElementById('loginPass');
-  const msg = document.getElementById('loginMsg');
-
-  console.log('🎯 Elements found:', {
-    btnShowLogin: !!btnShowLogin,
-    loginSheet: !!loginSheet,
-    btnDoLogin: !!btnDoLogin,
-    loginEmail: !!loginEmail,
-    loginPass: !!loginPass,
-    msg: !!msg,
-  });
-
-  if (!btnShowLogin) {
-    console.warn('❌ btnShowLogin NOT found in DOM!');
-  } else {
-    btnShowLogin.addEventListener('click', () => {
-      console.log('🟢 btnShowLogin clicked → attempting to show login sheet');
-      if (typeof showLoginSheet !== 'function') {
-        console.error('❌ showLoginSheet function missing or not callable');
-      } else {
-        showLoginSheet(true);
-        console.log('✅ showLoginSheet(true) called successfully');
-      }
-    });
-  }
-
-  if (btnDoLogin) {
-    btnDoLogin.addEventListener('click', async () => {
-      console.log('🟣 btnDoLogin clicked → starting login attempt');
-      const email = loginEmail?.value?.trim();
-      const pass = loginPass?.value;
-      console.log('📧 Entered:', { email, passLength: pass?.length || 0 });
-
-      if (!email || !pass) {
-        console.warn('⚠️ Email or password missing');
-        return;
-      }
-
-      try {
-        const user = await loginWithEmail(email, pass);
-        console.log('✅ Login success:', user);
-      } catch (err) {
-        console.error('❌ Login failed:', err);
-      }
-    });
-  } else {
-    console.warn('❌ btnDoLogin not found — cannot attach handler');
-  }
-});
-
+// === Initialize Auth on Load ===
+initAuth();

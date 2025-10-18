@@ -100,96 +100,32 @@
   <link rel="icon" href="/icons/icon-192.png" />
 </head>
 
-
-
 <body>
-  <!-- LOGIN SPLASH -->
-  <div id="login-splash" class="splash-screen">
-    <div class="splash-content">
-      <h1>ProPath Golf</h1>
-      <p class="tagline">Building the Elite Golf Blueprint</p>
-      <button id="btnShowLogin">Login to Continue</button>
-    </div>
+  <!-- Splash Screen -->
+  <div id="login-splash" class="splash">
+    <img src="assets/logo.png" alt="App Logo" class="splash-logo" />
+    <button id="btnShowLogin" class="btn-primary">Login to Continue</button>
   </div>
 
-  <div id="appContainer" style="opacity: 0; transition: opacity 0.8s ease; display: none;">
-  <div class="app">
-    <aside class="sidebar">
-      <div class="logo">
-        <img src="./propath_logo.png" alt="ProPath Golf Logo" />
-      </div>
-      <div id="whoami" class="muted">Not logged in</div>
-
-      <div class="section">
-        <h3>Role Panels</h3>
-        <div class="nav">
-          <button onclick="window.impersonate('golfer')">Impersonate Golfer</button>
-<button onclick="window.impersonate('coach')">Impersonate Coach</button>
-<button onclick="window.impersonate('admin')">Impersonate Admin</button>
-
-        </div>
-      </div>
-
-      <div class="section">
-        <h3>Navigate</h3>
-        <div id="roleNav" class="nav"></div>
-        <!-- Add this below the existing roleNav div (not inside the buttons for impersonate) -->
-        <button id="navCompare" type="button" class="nav-btn">Compare</button>
-      </div>
-    </aside>
-
-    <main id="mainContent" class="main">
-      <div>
-        <h1>Welcome</h1>
-        <p>Select a role to begin exploring.</p>
-      </div>
-    </main>
-
-  <!-- Simple auth panel -->
-  <div id="authPanel" style="position:fixed; right:12px; top:12px; z-index:1000;">
-    <button id="btnLogout" style="display:none;">Logout</button>
-    <button id="btnShowLoginPanel">Login</button>
-  </div>
-
-  <!-- Login sheet -->
-  <div id="loginSheet" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:16px 20px; width:320px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-      <h3 style="margin:0 0 10px;">Sign in</h3>
-      <label>Email</label>
-      <input id="loginEmail" type="email" style="width:100%; margin:6px 0 10px;"/>
-      <label>Password</label>
-      <input id="loginPass" type="password" style="width:100%; margin:6px 0 16px;"/>
-      <div style="display:flex; gap:8px; justify-content:flex-end;">
-        <button id="btnCancelLogin">Cancel</button>
-        <button id="btnDoLogin">Sign in</button>
-      </div>
-      <p id="loginMsg" style="color:#c00; margin-top:10px;"></p>
-    </div>
-  </div>
-
-  <!-- Chip & Putt Modal -->
-  <div id="eggModal" class="egg-modal" aria-hidden="true">
-    <div class="egg-modal__dialog" role="dialog" aria-modal="true" aria-label="Chip & Putt">
-      <button class="egg-close" id="eggCloseTop" title="Close">×</button>
-      <canvas id="eggCanvas" width="720" height="420"></canvas>
-      <div class="egg-hud">
-        <span id="eggStrokes">Strokes: 0/3</span>
-        <span id="eggMsg"></span>
-        <button id="eggClose" class="btn">Close</button>
-        <button id="eggReset" class="btn">Reset</button>
+  <!-- Login Sheet (hidden until triggered) -->
+  <div id="loginSheet">
+    <div class="login-card">
+      <h2>Sign In</h2>
+      <input id="loginEmail" type="email" placeholder="Email" />
+      <input id="loginPass" type="password" placeholder="Password" />
+      <div id="loginMsg" class="login-msg"></div>
+      <div class="login-actions">
+        <button id="btnDoLogin" class="btn-primary">Sign In</button>
+        <button id="btnCancelLogin" class="btn-secondary">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- Floating Action Button (FAB) -->
-  <button id="eggFab" class="fab" title="Play Chip & Putt">⛳</button>
+  <!-- Main App Container (hidden until authenticated) -->
+  <main id="appContainer" style="display:none; opacity:0;">
+    <!-- your app/dashboard content loads here dynamically -->
+  </main>
 
-<div>
-
-  <!-- Supabase UMD (NOT the ESM build) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-
-<!-- Your app (bump the v=) -->
-<script src="./app.js?v=dev12" defer></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
