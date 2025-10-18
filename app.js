@@ -319,23 +319,6 @@ window.setQuartersFrom = function setQuartersFrom(g) {
   }
 };
 
-// === AUTH STATE LISTENER ===
-supabase.auth.onAuthStateChange(async (event, session) => {
-  const splash = document.getElementById('login-splash');
-  const mainContent = document.getElementById('mainContent');
-
-  if (session && session.user) {
-    // User is logged in
-    splash.classList.add('fade-out');
-    setTimeout(() => splash.classList.add('hidden'), 800);
-    mainContent.style.display = 'block';
-  } else {
-    // User not logged in
-    splash.classList.remove('hidden');
-    mainContent.style.display = 'none';
-  }
-});
-
 
 /* ================= Helpers ================= */
 const last = arr => arr[arr.length-1];
@@ -1628,20 +1611,45 @@ function navTo(view) {
 window.navTo = window.navTo || navTo;
 window.loadGolferFromDB = window.loadGolferFromDB || loadGolferFromDB;
 
-// === Show Login Sheet Handler ===
+// === Hook up login/logout buttons once DOM is ready ===
 window.addEventListener('DOMContentLoaded', () => {
-  // Run auth init after DOM ready
-  initAuth();
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  const btnCancelLogin = document.getElementById('btnCancelLogin');
+  const btnDoLogin = document.getElementById('btnDoLogin');
+  const btnLogout = document.getElementById('btnLogout');
 
-  // Attach click handler directly once DOM exists
-  const btnShowLogin = document.getElementById('login-btn');
-  if (btnShowLogin) {
-    console.log('✅ Found login button, attaching listener');
-    btnShowLogin.addEventListener('click', () => {
-      console.log('✅ Login button clicked — showing login sheet');
-      showLoginSheet(true);
-    });
-  } else {
-    console.error('❌ Could not find #login-btn in DOM');
-  }
+  // Show login sheet from splash
+  btnShowLogin?.addEventListener('click', () => showLoginSheet(true));
+
+  // Close login sheet
+  btnCancelLogin?.addEventListener('click', () => showLoginSheet(false));
+
+  // Handle login
+  btnDoLogin?.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail')?.value.trim();
+    const pass = document.getElementById('loginPass')?.value;
+    const msg = document.getElementById('loginMsg');
+    msg.textContent = '';
+
+    if (!email || !pass) {
+      msg.textContent = 'Please enter email and password';
+      return;
+    }
+
+    try {
+      await loginWithEmail(email, pass);
+      console.log('✅ Logged in successfully');
+      msg.textContent = 'Login successful!';
+      showLoginSheet(false);
+    } catch (e) {
+      console.error('❌ Login failed:', e);
+      msg.textContent = e.message || 'Login failed';
+    }
+  });
+
+  // Logout handler
+  btnLogout?.addEventListener('click', logout);
+
+  // Initialize authentication
+  initAuth();
 });
