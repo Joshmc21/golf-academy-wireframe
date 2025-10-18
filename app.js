@@ -1625,25 +1625,40 @@ window.addEventListener('DOMContentLoaded', () => {
   btnCancelLogin?.addEventListener('click', () => showLoginSheet(false));
 
   // Handle login
-  btnDoLogin?.addEventListener('click', async () => {
+  btnDoLogin.addEventListener('click', async () => {
     const email = document.getElementById('loginEmail')?.value.trim();
     const pass = document.getElementById('loginPass')?.value;
     const msg = document.getElementById('loginMsg');
     msg.textContent = '';
 
     if (!email || !pass) {
-      msg.textContent = 'Please enter email and password';
+      msg.textContent = '⚠️ Please enter both email and password';
       return;
     }
 
     try {
-      await loginWithEmail(email, pass);
-      console.log('✅ Logged in successfully');
-      msg.textContent = 'Login successful!';
+      const user = await loginWithEmail(email, pass);
+      console.log('✅ Logged in as:', user.email);
+
+      // Load golfer from DB
+      const golfer = await loadGolferFromDB(user.id);
+      if (!golfer) {
+        msg.textContent = '⚠️ No golfer profile found for this user.';
+        console.warn('No golfer found for userId:', user.id);
+        return;
+      }
+
+      // Show main app and render dashboard
       showLoginSheet(false);
+      document.getElementById('login-splash').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      const main = document.querySelector('main');
+      renderGolferDashboard(main);
+
+      msg.textContent = '✅ Login successful!';
     } catch (e) {
       console.error('❌ Login failed:', e);
-      msg.textContent = e.message || 'Login failed';
+      msg.textContent = e.message || '❌ Login failed.';
     }
   });
 
