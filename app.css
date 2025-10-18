@@ -106,4 +106,22 @@ svg text { fill:#555; font-family: Helvetica, Arial, sans-serif }
 }
 .egg-fab:hover{ transform: translateY(-1px); }
 
+/* === LOGIN SHEET (fix visibility) === */
+#loginSheet {
+  position: fixed;
+  inset: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 2147483647; /* must be above splash */
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+#loginSheet.show {
+  display: flex;
+  opacity: 1;
+}
+
 

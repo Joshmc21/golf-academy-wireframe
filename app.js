@@ -257,7 +257,8 @@ async function logout() {
 
 function showLoginSheet(show) {
   const el = document.getElementById('loginSheet');
-  if (el) el.style.display = show ? 'flex' : 'none';
+  if (!el) return;
+  el.classList.toggle('show', show);
 }
 
 // === Hook up buttons (after DOM ready) ===
