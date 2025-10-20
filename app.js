@@ -67,16 +67,20 @@ function updateAuthUI() {
 
   if (loggedIn) {
     if (loginSheet) loginSheet.style.display = "none";
-    if (main) main.style.display = "block";
     if (loginSplash) loginSplash.style.display = "none";
+
+  if (main) {
+      main.style.display = "block";
+      setTimeout(() => main.classList.add("visible"), 50);
+    }
   } else {
-    if (main) main.style.display = "none";
+    if (main) {
+      main.style.display = "none";
+      main.classList.remove("visible");
+    }
+  }
     if (loginSheet) loginSheet.style.display = "flex";
     if (loginSplash) loginSplash.style.display = "flex";
-  }
-
-  if (btnShowLoginPanel) btnShowLoginPanel.style.display = loggedIn ? "none" : "inline-block";
-  if (btnLogout) btnLogout.style.display = loggedIn ? "inline-block" : "none";
 }
 
 // === LOGIN / LOGOUT HANDLERS ===
