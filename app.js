@@ -27,7 +27,8 @@ const spark = (arr, w = 200, h = 40, cls = "spark") =>
        .join("")}
    </svg>`;
 
-// === AUTH SYSTEM ===
+
+// ==== INIT SYSTEM ====
 async function initAuth() {
   // 1️⃣ Try to restore session
   const { data } = await supabase.auth.getSession();
@@ -36,21 +37,34 @@ async function initAuth() {
 
   // 2️⃣ If already logged in, load golfer
   if (session?.user?.id) {
-    console.log("✅ Restored session for:", session.user.id);
+    console.log("🟢 Restored session for:", session.user.id);
     const golfer = await loadGolferFromDB(session.user.id);
-    if (golfer) renderGolferDashboard(golfer);
+    if (golfer) {
+      setTimeout(() => {
+        const main = document.querySelector("main");
+        if (main) renderGolferDashboard(golfer);
+        else console.warn("Main not ready yet when trying to render dashboard");
+      }, 200);
+    }
   }
 
   // 3️⃣ React to login/logout events
   supabase.auth.onAuthStateChange(async (_event, sess) => {
     session = sess;
     updateAuthUI();
+
     if (session?.user?.id) {
-      console.log("✅ Logged in, loading golfer for", session.user.id);
+      console.log("🟢 Logged in, loading golfer for:", session.user.id);
       const golfer = await loadGolferFromDB(session.user.id);
-      if (golfer) renderGolferDashboard(golfer);
+      if (golfer) {
+        setTimeout(() => {
+          const main = document.querySelector("main");
+          if (main) renderGolferDashboard(golfer);
+          else console.warn("Main not ready yet when trying to render dashboard");
+        }, 200);
+      }
     } else {
-      console.warn("Logged out.");
+      console.log("🔴 Logged out.");
       document.querySelector("main").innerHTML = "";
     }
   });
@@ -207,7 +221,7 @@ async function loadGolferFromDB(userId) {
 window.loadGolferFromDB = loadGolferFromDB;
 
 // === Render Golfer Dashboard ===
-function renderGolferDashboard(golfer) {
+function GolferDashboard(golfer) {
   const main = document.querySelector("main");
   if (!golfer || !main) {
     console.warn("⚠️ No golfer or <main> found for rendering.");
