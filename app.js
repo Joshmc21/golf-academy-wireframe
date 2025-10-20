@@ -61,15 +61,18 @@ function updateAuthUI() {
   const loggedIn = !!session;
   const main = document.querySelector("main");
   const loginSheet = document.getElementById("loginSheet");
+  const loginSplash = document.getElementById("login-splash");
   const btnShowLoginPanel = document.getElementById("btnShowLogin");
   const btnLogout = document.getElementById("btnLogout");
 
   if (loggedIn) {
     if (loginSheet) loginSheet.style.display = "none";
     if (main) main.style.display = "block";
+    if (loginSplash) loginSplash.style.display = "none";
   } else {
     if (main) main.style.display = "none";
     if (loginSheet) loginSheet.style.display = "flex";
+    if (loginSplash) loginSplash.style.display = "flex";
   }
 
   if (btnShowLoginPanel) btnShowLoginPanel.style.display = loggedIn ? "none" : "inline-block";
