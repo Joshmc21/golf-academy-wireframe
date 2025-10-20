@@ -61,7 +61,7 @@ function updateAuthUI() {
   const loggedIn = !!session;
   const main = document.querySelector("main");
   const loginSheet = document.getElementById("loginSheet");
-  const btnShowLoginPanel = document.getElementById("btnShowLoginPanel");
+  const btnShowLoginPanel = document.getElementById("btnShowLogin");
   const btnLogout = document.getElementById("btnLogout");
 
   if (loggedIn) {
@@ -109,6 +109,11 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       await loginWithEmail(email, pass);
       showLoginSheet(false);
+
+      document.getElementById('login-splash').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'block';
+      navTo('dashboard');
+
     } catch (err) {
       msg.textContent = err.message || "Login failed";
       console.error("Login error:", err);
