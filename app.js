@@ -147,94 +147,153 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // === PART 2: LOAD DATA + RENDER DASHBOARD ===
 
-// === Load golfer and performance data from Supabase ===
+// === Load golfer + related performance data (defensive, typed) ===
 async function loadGolferFromDB(userId) {
-  if (!userId) {
-    console.warn("⚠️ loadGolferFromDB called without valid userId");
+  if (!userId) return null;
+
+  // 1) Base golfer row (name is optional; we fall back to profiles)
+  const { data: golferRow, error: golferErr } = await supabase
+    .from('golfers')
+    .select('id, user_id, name, hi, next_update')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (golferErr) {
+    console.error('loadGolferFromDB fatal (golfers):', golferErr);
+    return null;
+  }
+  if (!golferRow) {
+    console.warn('No golfer row for this user_id.');
     return null;
   }
 
-  try {
-    console.log("📡 Fetching golfer data for:", userId);
+  // 2) Profiles (optional – only if you keep names there)
+  let profileName = null;
+  const { data: profileRow, error: profileErr } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .maybeSingle();
+  if (!profileErr && profileRow && profileRow.full_name) profileName = profileRow.full_name;
 
-    // Base profile
-    const { data: base, error: baseErr } = await supabase
-      .from("golfers")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-    if (baseErr) throw baseErr;
+  // 3) Phys quarter (your screenshot shows columns: id, d, chs, ball, cmj, bj, height, weight, user_id)
+  const { data: physRows, error: physErr } = await supabase
+    .from('phys_quarter')
+    .select('id, d, chs, ball, cmj, bj, height, weight, user_id')
+    .eq('user_id', userId)
+    .order('id', { ascending: true });
 
-    // SG (per quarter)
-    const { data: sgRows, error: sgErr } = await supabase
-      .from("sg_quarter")
-      .select("d, total, tee, approach, short, putting")
-      .eq("user_id", userId)
-      .order("d", { ascending: true });
-    if (sgErr) console.warn("SG fetch issue:", sgErr);
+  if (physErr) console.error('loadGolferFromDB phys error:', physErr);
 
-    // Physical
-    const { data: physRows, error: physErr } = await supabase
-      .from("phys_quarter")
-      .select("d, chs, ball, cmj, bj, height, weight")
-      .eq("user_id", userId)
-      .order("d", { ascending: true });
-    if (physErr) console.warn("Physical fetch issue:", physErr);
+  // 4) SG quarter (adjust column names if yours differ)
+  // expected: sg_total, sg_putting, sg_tee, sg_approach, sg_short, d, user_id
+  const { data: sgRows, error: sgErr } = await supabase
+    .from('sg_quarter')
+    .select('id, d, sg_total, sg_putting, sg_tee, sg_approach, sg_short, user_id')
+    .eq('user_id', userId)
+    .order('id', { ascending: true });
 
-    // Coach ratings
-    const { data: rateRows, error: rateErr } = await supabase
-      .from("coach_ratings")
-      .select("d, holing, short, wedge, flight, plan")
-      .eq("user_id", userId)
-      .order("d", { ascending: true });
-    if (rateErr) console.warn("Ratings fetch issue:", rateErr);
+  if (sgErr) console.error('loadGolferFromDB sg error:', sgErr);
 
-    // Attendance
-    const { data: attRows, error: attErr } = await supabase
-      .from("attendance")
-      .select("d, group_sess, one1")
-      .eq("user_id", userId)
-      .order("d", { ascending: true });
-    if (attErr) console.warn("Attendance fetch issue:", attErr);
+  // 5) Coach ratings (assume column "rating")
+  const { data: ratingRows, error: ratingErr } = await supabase
+    .from('coach_ratings')
+    .select('id, rating, created_at, user_id')
+    .eq('user_id', userId)
+    .order('id', { ascending: true });
 
-    console.log("✅ Golfer + performance data loaded.");
+  if (ratingErr) console.error('loadGolferFromDB coach_ratings error:', ratingErr);
 
-    // Return combined golfer object
-    return {
-      id: userId,
-      name: base?.name || "Unknown Golfer",
-      hi: base?.hi || 0,
-      dob: base?.dob || null,
-      next_update: base?.next_update || null,
-      sg: sgRows || [],
-      phys: physRows || [],
-      ratings: rateRows || [],
-      attendance: attRows || [],
-    };
-  } catch (err) {
-    console.error("❌ loadGolferFromDB failed:", err);
-    return null;
-  }
+  // 6) Attendance (assume a row per attendance event)
+  const { data: attendanceRows, error: attendanceErr } = await supabase
+    .from('attendance')
+    .select('id, date, user_id')
+    .eq('user_id', userId)
+    .order('id', { ascending: true });
+
+  if (attendanceErr) console.error('loadGolferFromDB attendance error:', attendanceErr);
+
+  // Defensive: coerce numeric fields so later math is correct
+  const toNum = v => (v == null || v === '' ? null : Number(v));
+
+  const phys = (physRows || []).map(r => ({
+    id: r.id,
+    d: r.d,
+    chs: toNum(r.chs),
+    ball: toNum(r.ball),
+    cmj: toNum(r.cmj),
+    bj: toNum(r.bj),
+    height: toNum(r.height),
+    weight: toNum(r.weight)
+  }));
+
+  const sg = (sgRows || []).map(r => ({
+    id: r.id,
+    d: r.d,
+    total: toNum(r.sg_total),
+    putting: toNum(r.sg_putting),
+    tee: toNum(r.sg_tee),
+    approach: toNum(r.sg_approach),
+    short: toNum(r.sg_short)
+  }));
+
+  const ratings = (ratingRows || []).map(r => toNum(r.rating)).filter(v => v != null);
+  const attendance = attendanceRows || [];
+
+  const result = {
+    id: golferRow.id,
+    user_id: golferRow.user_id,
+    name: golferRow.name || profileName || null,
+    hi: toNum(golferRow.hi),
+    next_update: golferRow.next_update || null,
+    phys,
+    sg,
+    ratings,
+    attendance
+  };
+
+  console.log('Golfer + performance data loaded.', result);
+  return result;
 }
 
 window.loadGolferFromDB = loadGolferFromDB;
 
 // === Render Golfer Dashboard ===
 function renderGolferDashboard(golfer) {
-  currentGolfer = golfer
+  currentGolfer = golfer;
   const main = document.querySelector("main");
   if (!golfer || !main) {
     console.warn("⚠️ No golfer or <main> found for rendering.");
     return;
   }
 
-  // Defensive defaults
+  // Defensive helpers
+  const last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null);
+  const avg = (arr) => {
+    const nums = (arr || []).filter((v) => typeof v === "number" && !isNaN(v));
+    return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+  };
+  const fmt1 = (n) => (n == null ? "—" : Number(n).toFixed(1));
+
+  // Extract data safely
   const sgData = Array.isArray(golfer.sg) ? golfer.sg : [];
   const physData = Array.isArray(golfer.phys) ? golfer.phys : [];
   const ratingsData = Array.isArray(golfer.ratings) ? golfer.ratings : [];
   const attendanceData = Array.isArray(golfer.attendance) ? golfer.attendance : [];
 
+  // Build metrics
   const sgTotals = sgData.map((s) => s.total || 0);
+  const sgLatest = last(sgData);
+  const sgLatestTotal = fmt1(sgLatest?.total);
+
+  const physLatest = last(physData);
+  const physCHS = fmt1(physLatest?.chs); // clubhead speed
+  const physBall = fmt1(physLatest?.ball);
+
+  const coachAvg = fmt1(avg(ratingsData));
+  const attendCount = attendanceData.length;
+  const hiValue = fmt1(golfer.hi);
+
   const golferName = golfer.name ? golfer.name.split(" ")[0] : "Golfer";
   const nextUpdate = golfer.next_update || "TBD";
 
@@ -247,28 +306,28 @@ function renderGolferDashboard(golfer) {
 
       <div class="grid grid-3">
         <div class="card" onclick="navTo('hi-detail')" title="Handicap detail">
-          <div class="kpi">${fmt(golfer.hi || 0)}</div>
+          <div class="kpi">${hiValue}</div>
           <div class="muted">Handicap Index</div>
         </div>
 
         <div class="card" onclick="navTo('sg-detail')" title="Strokes Gained detail">
           <div class="sparkwrap">${spark(sgTotals, 280, 48, "spark")}</div>
-          <div class="muted">Strokes Gained (${sgTotals.length} records)</div>
+          <div class="muted">Strokes Gained (${sgTotals.length} records) – Latest: ${sgLatestTotal}</div>
         </div>
 
         <div class="card" onclick="navTo('physical-detail')" title="Physical performance">
-          <div class="kpi">${fmt(physData.length || 0)}</div>
-          <div class="muted">Physical Metrics</div>
+          <div class="kpi">${physCHS}</div>
+          <div class="muted">Clubhead Speed (latest)</div>
         </div>
 
         <div class="card" onclick="navTo('coach-ratings-detail')" title="Coach ratings">
-          <div class="kpi">${fmt(ratingsData.length || 0)}</div>
-          <div class="muted">Coach Ratings</div>
+          <div class="kpi">${coachAvg}</div>
+          <div class="muted">Avg Coach Rating</div>
         </div>
 
         <div class="card" onclick="navTo('attendance-detail')" title="Attendance">
-          <div class="kpi">${fmt(attendanceData.length || 0)}</div>
-          <div class="muted">Attendance</div>
+          <div class="kpi">${fmt1(attendCount)}</div>
+          <div class="muted">Sessions Attended</div>
         </div>
       </div>
     </section>
