@@ -358,83 +358,165 @@ function navTo(page) {
 
   switch (page) {
     case "hi-detail":
-      main.innerHTML = `
-        <h1>Handicap Index</h1>
-        <p>Detailed view coming soon.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
+      renderHIDetail(currentGolfer);
       break;
 
     case "sg-detail":
-      main.innerHTML = `
-        <h1>Strokes Gained</h1>
-        <p>Breakdown of SG per category over time.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
+      renderSGDetail(currentGolfer);
       break;
 
     case "physical-detail":
-      main.innerHTML = `
-        <h1>Physical Metrics</h1>
-        <p>Speed, jump, and strength tracking data.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
+      renderPhysicalDetail(currentGolfer);
       break;
 
     case "coach-ratings-detail":
-      main.innerHTML = `
-        <h1>Coach Ratings</h1>
-        <p>Feedback from your coach over each quarter.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
+      renderCoachRatingsDetail(currentGolfer);
       break;
 
     case "attendance-detail":
-      main.innerHTML = `
-        <h1>Attendance</h1>
-        <p>Group sessions and one-to-one attendance data.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
-      break;
-
-    case "coach":
-      main.innerHTML = `
-        <h1>Coach Dashboard</h1>
-        <p>View and manage players under your supervision.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
-      break;
-
-    case "admin":
-      main.innerHTML = `
-        <h1>Admin Panel</h1>
-        <p>Manage golfers, sessions, and analytics system-wide.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
-      break;
-
-    case "correlations":
-      main.innerHTML = `
-        <h1>Correlations</h1>
-        <p>Discover relationships between training variables.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
-      break;
-
-    case "trends":
-      main.innerHTML = `
-        <h1>Performance Trends</h1>
-        <p>Visualise improvements and regressions across metrics.</p>
-        <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
-      `;
+      renderAttendanceDetail(currentGolfer);
       break;
 
     default:
       renderGolferDashboard(currentGolfer);
-      break;
   }
 }
 
+function renderSGDetail(golfer) {
+  const main = document.querySelector("main");
+  if (!golfer || !golfer.sg?.length) {
+    main.innerHTML = `
+      <h1>Strokes Gained</h1>
+      <p>No SG data available.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    `;
+    return;
+  }
+
+  const rows = golfer.sg.map(s => `
+    <tr>
+      <td>${s.d}</td>
+      <td>${fmt(s.total)}</td>
+      <td>${fmt(s.putting)}</td>
+      <td>${fmt(s.tee)}</td>
+      <td>${fmt(s.approach)}</td>
+      <td>${fmt(s.short)}</td>
+    </tr>
+  `).join("");
+
+  main.innerHTML = `
+    <section>
+      <h1>Strokes Gained</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>Cycle</th><th>Total</th><th>Putting</th><th>Tee</th><th>Approach</th><th>Short</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+function renderPhysicalDetail(golfer) {
+  const main = document.querySelector("main");
+  if (!golfer || !golfer.phys?.length) {
+    main.innerHTML = `
+      <h1>Physical Metrics</h1>
+      <p>No physical data available.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    `;
+    return;
+  }
+
+  const rows = golfer.phys.map(p => `
+    <tr>
+      <td>${p.d}</td>
+      <td>${fmt(p.chs)}</td>
+      <td>${fmt(p.ball)}</td>
+      <td>${fmt(p.cmj)}</td>
+      <td>${fmt(p.bj)}</td>
+      <td>${fmt(p.height)}</td>
+      <td>${fmt(p.weight)}</td>
+    </tr>
+  `).join("");
+
+  main.innerHTML = `
+    <section>
+      <h1>Physical Metrics</h1>
+      <table class="data-table">
+        <thead>
+          <tr><th>Cycle</th><th>CHS</th><th>Ball</th><th>CMJ</th><th>BJ</th><th>Height</th><th>Weight</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+function renderCoachRatingsDetail(golfer) {
+  const main = document.querySelector("main");
+  if (!golfer || !golfer.ratings?.length) {
+    main.innerHTML = `
+      <h1>Coach Ratings</h1>
+      <p>No coach rating data available.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    `;
+    return;
+  }
+
+  const rows = golfer.ratings.map((r, i) => `
+    <tr>
+      <td>Cycle ${i + 1}</td>
+      <td>${fmt(r)}</td>
+    </tr>
+  `).join("");
+
+  main.innerHTML = `
+    <section>
+      <h1>Coach Ratings</h1>
+      <table class="data-table">
+        <thead><tr><th>Cycle</th><th>Average Rating</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+function renderAttendanceDetail(golfer) {
+  const main = document.querySelector("main");
+  if (!golfer || !golfer.attendance?.length) {
+    main.innerHTML = `
+      <h1>Attendance</h1>
+      <p>No attendance data available.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    `;
+    return;
+  }
+
+  const rows = golfer.attendance.map(a => `
+    <tr>
+      <td>${a.d}</td>
+      <td>${fmt(a.group_s)}</td>
+      <td>${fmt(a.one1)}</td>
+    </tr>
+  `).join("");
+
+  main.innerHTML = `
+    <section>
+      <h1>Attendance</h1>
+      <table class="data-table">
+        <thead><tr><th>Cycle</th><th>Group Sessions</th><th>1:1 Sessions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+    
 // Keep track of current golfer globally
 let currentGolfer = null;
 
