@@ -771,3 +771,135 @@ function navTo(view) {
   }
 }
 window.navTo = navTo;
+
+
+// === PART 5: ENHANCED ANALYTICS VIEWS (Compare, Correlations, Trends) ===
+
+// 🧮 Utility: Sparkline Generator
+function drawSparkline(values, width = 240, height = 60, color = "#2e86de") {
+  if (!values || !values.length) return `<svg width="${width}" height="${height}"></svg>`;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const step = width / (values.length - 1 || 1);
+  let path = "";
+  values.forEach((v, i) => {
+    const x = i * step;
+    const y = height - ((v - min) / (max - min || 1)) * height;
+    path += `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)} `;
+  });
+  return `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
+    </svg>
+  `;
+}
+
+// 📊 Compare Page — averages + inline charts
+function renderComparePage() {
+  const main = document.querySelector("main");
+  if (!currentGolfer) return (main.innerHTML = "<p>No golfer loaded.</p>");
+
+  const phys = currentGolfer.phys || [];
+  const sg = currentGolfer.sg || [];
+
+  const avgCHS = avg(phys.map(p => p.chs));
+  const avgCMJ = avg(phys.map(p => p.cmj));
+  const avgBJ = avg(phys.map(p => p.bj));
+  const avgSG = avg(sg.map(s => s.total));
+
+  main.innerHTML = `
+    <section>
+      <h1>Compare Metrics</h1>
+      <p>Review your physical and golf performance averages over time.</p>
+
+      <table class="table">
+        <tr><th>Metric</th><th>Average</th><th>Trend</th></tr>
+        <tr><td>Club Head Speed (CHS)</td><td>${fmt(avgCHS)}</td><td>${drawSparkline(phys.map(p => p.chs))}</td></tr>
+        <tr><td>Countermovement Jump (CMJ)</td><td>${fmt(avgCMJ)}</td><td>${drawSparkline(phys.map(p => p.cmj))}</td></tr>
+        <tr><td>Broad Jump (BJ)</td><td>${fmt(avgBJ)}</td><td>${drawSparkline(phys.map(p => p.bj))}</td></tr>
+        <tr><td>Strokes Gained Total (SG)</td><td>${fmt(avgSG)}</td><td>${drawSparkline(sg.map(s => s.total), 240, 60, "#27ae60")}</td></tr>
+      </table>
+
+      <p class="muted">All trends are based on your stored performance data in Supabase.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+// 🔗 Correlations Page — relationship between SG and physical metrics
+function renderCorrelationsPage() {
+  const main = document.querySelector("main");
+  if (!currentGolfer) return (main.innerHTML = "<p>No golfer loaded.</p>");
+
+  const phys = currentGolfer.phys || [];
+  const sg = currentGolfer.sg || [];
+
+  const sgTotals = sg.map(x => x.total);
+  const chsCorr = pearson(phys.map(x => x.chs), sgTotals);
+  const cmjCorr = pearson(phys.map(x => x.cmj), sgTotals);
+  const bjCorr = pearson(phys.map(x => x.bj), sgTotals);
+  const ballCorr = pearson(phys.map(x => x.ball), sgTotals);
+
+  const corrColor = (r) => {
+    if (r > 0.6) return "green";
+    if (r > 0.3) return "orange";
+    if (r < -0.3) return "red";
+    return "gray";
+  };
+
+  main.innerHTML = `
+    <section>
+      <h1>Correlations</h1>
+      <p>These values show how strongly your physical metrics align with your golf performance.</p>
+
+      <table class="table">
+        <tr><th>Metric</th><th>Correlation with SG Total</th></tr>
+        <tr><td>Club Head Speed (CHS)</td><td style="color:${corrColor(chsCorr)}">${fmt(chsCorr)}</td></tr>
+        <tr><td>Countermovement Jump (CMJ)</td><td style="color:${corrColor(cmjCorr)}">${fmt(cmjCorr)}</td></tr>
+        <tr><td>Broad Jump (BJ)</td><td style="color:${corrColor(bjCorr)}">${fmt(bjCorr)}</td></tr>
+        <tr><td>Ball Speed</td><td style="color:${corrColor(ballCorr)}">${fmt(ballCorr)}</td></tr>
+      </table>
+
+      <p class="muted">Values closer to 1.0 indicate a strong positive relationship; closer to -1.0 means inverse correlation.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+// 📈 Trends Page — track metrics over time
+function renderTrendsPage() {
+  const main = document.querySelector("main");
+  if (!currentGolfer) return (main.innerHTML = "<p>No golfer loaded.</p>");
+
+  const phys = currentGolfer.phys || [];
+  const sg = currentGolfer.sg || [];
+
+  const chsTrend = phys.map(p => p.chs);
+  const cmjTrend = phys.map(p => p.cmj);
+  const sgTrend = sg.map(s => s.total);
+
+  main.innerHTML = `
+    <section>
+      <h1>Performance Trends</h1>
+      <p>Progression of your key physical and golf metrics across quarters.</p>
+
+      <div class="card">
+        <h3>Club Head Speed (CHS)</h3>
+        ${drawSparkline(chsTrend, 400, 80, "#f39c12")}
+      </div>
+
+      <div class="card">
+        <h3>Countermovement Jump (CMJ)</h3>
+        ${drawSparkline(cmjTrend, 400, 80, "#9b59b6")}
+      </div>
+
+      <div class="card">
+        <h3>Strokes Gained Total (SG)</h3>
+        ${drawSparkline(sgTrend, 400, 80, "#27ae60")}
+      </div>
+
+      <p class="muted">These charts are automatically generated from your Supabase-stored quarterly data.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
