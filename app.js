@@ -280,33 +280,13 @@ function renderGolferDashboard(golfer) {
     return;
   }
 
-  // Defensive helpers
-  const last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null);
-  const avg = (arr) => {
-    const nums = (arr || []).filter((v) => typeof v === "number" && !isNaN(v));
-    return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
-  };
-  const fmt1 = (n) => (n == null ? "—" : Number(n).toFixed(1));
-
-  // Extract data safely
+  // Defensive defaults
   const sgData = Array.isArray(golfer.sg) ? golfer.sg : [];
   const physData = Array.isArray(golfer.phys) ? golfer.phys : [];
   const ratingsData = Array.isArray(golfer.ratings) ? golfer.ratings : [];
   const attendanceData = Array.isArray(golfer.attendance) ? golfer.attendance : [];
 
-  // Build metrics
   const sgTotals = sgData.map((s) => s.total || 0);
-  const sgLatest = last(sgData);
-  const sgLatestTotal = fmt1(sgLatest?.total);
-
-  const physLatest = last(physData);
-  const physCHS = fmt1(physLatest?.chs); // clubhead speed
-  const physBall = fmt1(physLatest?.ball);
-
-  const coachAvg = fmt1(avg(ratingsData));
-  const attendCount = attendanceData.length;
-  const hiValue = fmt1(golfer.hi);
-
   const golferName = golfer.name ? golfer.name.split(" ")[0] : "Golfer";
   const nextUpdate = golfer.next_update || "TBD";
 
@@ -319,28 +299,48 @@ function renderGolferDashboard(golfer) {
 
       <div class="grid grid-3">
         <div class="card" onclick="navTo('hi-detail')" title="Handicap detail">
-          <div class="kpi">${hiValue}</div>
+          <div class="kpi">${fmt(golfer.hi || 0)}</div>
           <div class="muted">Handicap Index</div>
         </div>
 
         <div class="card" onclick="navTo('sg-detail')" title="Strokes Gained detail">
           <div class="sparkwrap">${spark(sgTotals, 280, 48, "spark")}</div>
-          <div class="muted">Strokes Gained (${sgTotals.length} records) – Latest: ${sgLatestTotal}</div>
+          <div class="muted">Strokes Gained (${sgTotals.length} records)</div>
         </div>
 
         <div class="card" onclick="navTo('physical-detail')" title="Physical performance">
-          <div class="kpi">${physCHS}</div>
-          <div class="muted">Clubhead Speed (latest)</div>
+          <div class="kpi">${fmt(physData.length || 0)}</div>
+          <div class="muted">Physical Metrics</div>
         </div>
 
         <div class="card" onclick="navTo('coach-ratings-detail')" title="Coach ratings">
-          <div class="kpi">${coachAvg}</div>
-          <div class="muted">Avg Coach Rating</div>
+          <div class="kpi">${fmt(ratingsData.length || 0)}</div>
+          <div class="muted">Coach Ratings</div>
         </div>
 
         <div class="card" onclick="navTo('attendance-detail')" title="Attendance">
-          <div class="kpi">${fmt1(attendCount)}</div>
-          <div class="muted">Sessions Attended</div>
+          <div class="kpi">${fmt(attendanceData.length || 0)}</div>
+          <div class="muted">Attendance</div>
+        </div>
+      </div>
+
+      <hr style="margin: 2em 0;">
+
+      <div class="nav grid grid-4" style="text-align:center;">
+        <div class="card" onclick="navTo('compare')" title="Compare stats with peers">
+          📊 <div class="muted">Compare</div>
+        </div>
+
+        <div class="card" onclick="navTo('correlations')" title="View relationships between metrics">
+          🔗 <div class="muted">Correlations</div>
+        </div>
+
+        <div class="card" onclick="navTo('trends')" title="Track your progress over time">
+          📈 <div class="muted">Trends</div>
+        </div>
+
+        <div class="card" onclick="navTo('admin')" title="Admin tools">
+          ⚙️ <div class="muted">Admin</div>
         </div>
       </div>
     </section>
