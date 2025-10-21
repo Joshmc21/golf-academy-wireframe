@@ -154,7 +154,7 @@ async function loadGolferFromDB(userId) {
   // 1) Base golfer row (name is optional; we fall back to profiles)
   const { data: golferRow, error: golferErr } = await supabase
     .from('golfers')
-    .select('id, user_id, name, hi, next_update')
+    .select('id, user_id, dob, hi, next_update, name')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -189,7 +189,7 @@ async function loadGolferFromDB(userId) {
   // expected: sg_total, sg_putting, sg_tee, sg_approach, sg_short, d, user_id
   const { data: sgRows, error: sgErr } = await supabase
     .from('sg_quarter')
-    .select('id, d, sg_total, sg_putting, sg_tee, sg_approach, sg_short, user_id')
+    .select('id, d, total, tee, approach, short, putting, user_id')
     .eq('user_id', userId)
     .order('id', { ascending: true });
 
@@ -198,7 +198,7 @@ async function loadGolferFromDB(userId) {
   // 5) Coach ratings (assume column "rating")
   const { data: ratingRows, error: ratingErr } = await supabase
     .from('coach_ratings')
-    .select('id, rating, created_at, user_id')
+    .select('id, d, holing, short, wedge, flight, plan, user_id')
     .eq('user_id', userId)
     .order('id', { ascending: true });
 
@@ -207,7 +207,7 @@ async function loadGolferFromDB(userId) {
   // 6) Attendance (assume a row per attendance event)
   const { data: attendanceRows, error: attendanceErr } = await supabase
     .from('attendance')
-    .select('id, date, user_id')
+    .select('id, d, group_sess, one1, user_id')
     .eq('user_id', userId)
     .order('id', { ascending: true });
 
@@ -230,15 +230,28 @@ async function loadGolferFromDB(userId) {
   const sg = (sgRows || []).map(r => ({
     id: r.id,
     d: r.d,
-    total: toNum(r.sg_total),
-    putting: toNum(r.sg_putting),
-    tee: toNum(r.sg_tee),
-    approach: toNum(r.sg_approach),
-    short: toNum(r.sg_short)
+    total: toNum(r.total),
+    tee: toNum(r.tee),
+    approach: toNum(r.approach),
+    short: toNum(r.short),
+    putting: toNum(r.putting)
   }));
 
-  const ratings = (ratingRows || []).map(r => toNum(r.rating)).filter(v => v != null);
-  const attendance = attendanceRows || [];
+  const ratings = (ratingRows || []).map(r => {
+    const values = [r.holing, r.short, r.wedge, r.flight, r.plan]
+      .map(toNum)
+      .filter(v => v != null);
+    if (values.length === 0) return null;
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    return avg;
+  }).filter(v => v != null);
+
+  const attendance = (attendanceRows || []).map(r => ({
+    id: r.id,
+    d: r.d,
+    group_s: toNum(r.group_s),
+    one1: toNum(r.one1),
+  }));
 
   const result = {
     id: golferRow.id,
