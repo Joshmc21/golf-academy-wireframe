@@ -82,19 +82,18 @@ function updateAuthUI() {
   if (loggedIn) {
     if (loginSheet) loginSheet.style.display = "none";
     if (loginSplash) loginSplash.style.display = "none";
-
-  if (main) {
-      main.style.display = "block";
-      setTimeout(() => main.classList.add("visible"), 50);
+    if (main) {
+        main.style.display = "block";
+        setTimeout(() => main.classList.add("visible"), 50);
     }
   } else {
     if (main) {
       main.style.display = "none";
       main.classList.remove("visible");
     }
-  }
     if (loginSheet) loginSheet.style.display = "flex";
     if (loginSplash) loginSplash.style.display = "flex";
+  }
 }
 
 // === LOGIN / LOGOUT HANDLERS ===
@@ -115,7 +114,7 @@ function showLoginSheet(show) {
 
 // === Wire UI Buttons ===
 window.addEventListener("DOMContentLoaded", () => {
-  const btnShowLoginPanel = document.getElementById("btnShowLoginPanel");
+  const btnShowLoginPanel = document.getElementById("btnShowLogin");
   const btnCancelLogin = document.getElementById("btnCancelLogin");
   const btnDoLogin = document.getElementById("btnDoLogin");
   const btnLogout = document.getElementById("btnLogout");
@@ -221,7 +220,8 @@ async function loadGolferFromDB(userId) {
 window.loadGolferFromDB = loadGolferFromDB;
 
 // === Render Golfer Dashboard ===
-function GolferDashboard(golfer) {
+function renderGolferDashboard(golfer) {
+  currentGolfer = golfer
   const main = document.querySelector("main");
   if (!golfer || !main) {
     console.warn("⚠️ No golfer or <main> found for rendering.");
