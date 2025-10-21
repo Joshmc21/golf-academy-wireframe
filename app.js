@@ -382,6 +382,43 @@ function navTo(page) {
   }
 }
 
+function renderHIDetail(golfer) {
+  const main = document.querySelector("main");
+
+  if (!golfer) {
+    main.innerHTML = `
+      <h1>Handicap Index</h1>
+      <p>No golfer data available.</p>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    `;
+    return;
+  }
+
+  // Defensive default
+  const hi = golfer.hi ?? "—";
+
+  // Optionally, if you have historical HI data later, 
+  // you could map and display trends here.
+  main.innerHTML = `
+    <section>
+      <h1>Handicap Index</h1>
+      <p>Your current handicap index and improvement tracking.</p>
+      
+      <div class="card big">
+        <div class="kpi">${fmt(hi)}</div>
+        <div class="muted">Current Handicap Index</div>
+      </div>
+
+      <p style="margin-top:1em;">
+        This represents your current performance-based handicap index as of your latest update.
+      </p>
+
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+
 function renderSGDetail(golfer) {
   const main = document.querySelector("main");
   if (!golfer || !golfer.sg?.length) {
@@ -559,3 +596,178 @@ if ("serviceWorker" in navigator) {
 
 // === Final Log ===
 console.log("✅ App.js loaded and initialized successfully.");
+
+
+// === PART 4: ADVANCED VIEWS (Compare, Correlations, Trends, Admin) ===
+
+// --- Simple utilities reused from old version ---
+function avg(arr) {
+  if (!arr || !arr.length) return 0;
+  const valid = arr.filter(x => typeof x === 'number' && !isNaN(x));
+  return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
+}
+
+function stddev(arr) {
+  const m = avg(arr);
+  const variance = avg(arr.map(x => (x - m) ** 2));
+  return Math.sqrt(variance);
+}
+
+function pearson(x, y) {
+  if (!x || !y || x.length !== y.length) return 0;
+  const mx = avg(x), my = avg(y);
+  const num = x.reduce((s, xi, i) => s + (xi - mx) * (y[i] - my), 0);
+  const den = Math.sqrt(x.reduce((s, xi) => s + (xi - mx) ** 2, 0)) *
+              Math.sqrt(y.reduce((s, yi) => s + (yi - my) ** 2, 0));
+  return den ? num / den : 0;
+}
+
+// --- Compare Page ---
+function renderComparePage() {
+  const main = document.querySelector("main");
+  if (!currentGolfer) return (main.innerHTML = "<p>No golfer loaded.</p>");
+  
+  main.innerHTML = `
+    <section>
+      <h1>Compare Metrics</h1>
+      <p>Compare your average stats with peers or targets.</p>
+      <div class="grid grid-2">
+        <div class="card"><strong>Average CHS:</strong> ${fmt(avg(currentGolfer.phys.map(x => x.chs)))}</div>
+        <div class="card"><strong>Average SG Total:</strong> ${fmt(avg(currentGolfer.sg.map(x => x.total)))}</div>
+        <div class="card"><strong>Average CMJ:</strong> ${fmt(avg(currentGolfer.phys.map(x => x.cmj)))}</div>
+        <div class="card"><strong>Average Putting:</strong> ${fmt(avg(currentGolfer.sg.map(x => x.putting)))}</div>
+      </div>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+// --- Correlations Page ---
+function renderCorrelationsPage() {
+  const main = document.querySelector("main");
+  if (!currentGolfer) return (main.innerHTML = "<p>No golfer loaded.</p>");
+  
+  const sg = currentGolfer.sg || [];
+  const phys = currentGolfer.phys || [];
+
+  const corrCHS = pearson(
+    phys.map(x => x.chs),
+    sg.map(x => x.total)
+  );
+
+  const corrCMJ = pearson(
+    phys.map(x => x.cmj),
+    sg.map(x => x.total)
+  );
+
+  main.innerHTML = `
+    <section>
+      <h1>Correlations</h1>
+      <p>See how your physical performance links to golf performance.</p>
+      <table class="table">
+        <tr><th>Metric</th><th>Correlation with SG Total</th></tr>
+        <tr><td>Club Head Speed (CHS)</td><td>${fmt(corrCHS)}</td></tr>
+        <tr><td>CMJ Jump</td><td>${fmt(corrCMJ)}</td></tr>
+      </table>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+// --- Trends Page ---
+function renderTrendsPage() {
+  const main = document.querySelector("main");
+  if (!currentGolfer) return (main.innerHTML = "<p>No golfer loaded.</p>");
+  
+  const sg = currentGolfer.sg || [];
+  const phys = currentGolfer.phys || [];
+
+  const sgTrend = sg.length > 1 ? sg[sg.length - 1].total - sg[0].total : 0;
+  const chsTrend = phys.length > 1 ? phys[phys.length - 1].chs - phys[0].chs : 0;
+
+  main.innerHTML = `
+    <section>
+      <h1>Performance Trends</h1>
+      <p>Progress over time based on first and last records.</p>
+      <div class="grid grid-2">
+        <div class="card">
+          <strong>Strokes Gained:</strong><br>
+          ${fmt(sgTrend)} (${fmt(sg[0]?.total)} → ${fmt(sg.at(-1)?.total)})
+        </div>
+        <div class="card">
+          <strong>Club Head Speed (CHS):</strong><br>
+          ${fmt(chsTrend)} (${fmt(phys[0]?.chs)} → ${fmt(phys.at(-1)?.chs)})
+        </div>
+      </div>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+// --- Admin Page ---
+function renderAdminPage() {
+  const main = document.querySelector("main");
+  main.innerHTML = `
+    <section>
+      <h1>Admin Dashboard</h1>
+      <p>Manage golfers, data cycles, and compliance here.</p>
+      <div class="grid grid-3">
+        <div class="card" onclick="renderAdminUsers()">👤 Users</div>
+        <div class="card" onclick="renderAdminCycles()">📅 Cycles</div>
+        <div class="card" onclick="renderAdminCompliance()">✅ Compliance</div>
+      </div>
+      <button onclick="renderGolferDashboard(currentGolfer)">⬅️ Back</button>
+    </section>
+  `;
+}
+
+function renderAdminUsers() {
+  const main = document.querySelector("main");
+  main.innerHTML = `
+    <section>
+      <h1>All Golfers</h1>
+      <p>Future: Pull full golfer list from Supabase 'golfers' table.</p>
+      <button onclick="renderAdminPage()">⬅️ Back</button>
+    </section>
+  `;
+}
+
+function renderAdminCycles() {
+  const main = document.querySelector("main");
+  main.innerHTML = `
+    <section>
+      <h1>Cycles Management</h1>
+      <p>Define or edit training cycles and update schedules.</p>
+      <button onclick="renderAdminPage()">⬅️ Back</button>
+    </section>
+  `;
+}
+
+function renderAdminCompliance() {
+  const main = document.querySelector("main");
+  main.innerHTML = `
+    <section>
+      <h1>Compliance Overview</h1>
+      <p>See who's overdue for performance updates.</p>
+      <button onclick="renderAdminPage()">⬅️ Back</button>
+    </section>
+  `;
+}
+
+// --- Navigation Hook Additions ---
+function navTo(view) {
+  console.log("Navigating to:", view);
+  switch (view) {
+    case "hi-detail": renderHIDetail(currentGolfer); break;
+    case "sg-detail": renderSGDetail(currentGolfer); break;
+    case "physical-detail": renderPhysicalDetail(currentGolfer); break;
+    case "coach-ratings-detail": renderRatingsDetail(currentGolfer); break;
+    case "attendance-detail": renderAttendanceDetail(currentGolfer); break;
+    case "compare": renderComparePage(); break;
+    case "correlations": renderCorrelationsPage(); break;
+    case "trends": renderTrendsPage(); break;
+    case "admin": renderAdminPage(); break;
+    default: renderGolferDashboard(currentGolfer);
+  }
+}
+window.navTo = navTo;
